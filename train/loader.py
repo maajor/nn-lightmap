@@ -19,7 +19,7 @@ def get_exr_data(path: str):
 def load_exr(path: str, channels=("R", "G", "B")):
     file = OpenEXR.InputFile(path)
     dw = file.header()["dataWindow"]
-    print(file.header())
+    # print(file.header())
     sz = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
     FLOAT = Imath.PixelType(Imath.PixelType.FLOAT)
     chs = [array.array("f", file.channel(Chan, FLOAT)).tolist() for Chan in channels]
@@ -32,35 +32,70 @@ def load_exr(path: str, channels=("R", "G", "B")):
     return img
 
 
-def collect_dataset(img_num=64, down_scale=2, bbx_size=10.0):
-    img_data = get_exr_data("dataset_raw/pnc/Camera_00.exr")
+def collect_dataset(img_num=64):
+    img_data = get_exr_data("dataset_raw/render/Camera_00.exr")
     used_size = (
-        int(math.floor(img_data[0] / down_scale)),
-        int(math.floor(img_data[1] / down_scale)),
+        int(math.floor(img_data[0])),
+        int(math.floor(img_data[1])),
     )
     pn = np.zeros((img_num, used_size[0], used_size[1], 6), dtype=np.float16)
     v = np.zeros((img_num, used_size[0], used_size[1], 3), dtype=np.float16)
     uv = np.zeros((img_num, used_size[0], used_size[1], 2), dtype=np.float16)
     color = np.zeros((img_num, used_size[0], used_size[1], 3), dtype=np.float16)
+
+    pn_valid = np.zeros((0, 6), dtype=np.float16)
+    v_valid = np.zeros((0, 3), dtype=np.float16)
+    color_valid = np.zeros((0, 3), dtype=np.float16)
+
     for i in tqdm(range(img_num)):
         print(f"load {i}")
-        pnc_img = load_exr(
-            f"dataset_raw/pnc/Camera_{i:02d}.exr",
+        render_img = load_exr(
+            f"dataset_raw/render/Camera_{i:02d}.exr",
             channels=(
-                "ViewLayer.Position.X",
-                "ViewLayer.Position.Y",
-                "ViewLayer.Position.Z",
+                "ViewLayer.Combined.R",
+                "ViewLayer.Combined.G",
+                "ViewLayer.Combined.B",
                 "ViewLayer.Normal.X",
                 "ViewLayer.Normal.Y",
                 "ViewLayer.Normal.Z",
+            ),
+        )
+        color[i, :, :, :] = render_img[:, :, 0:3]
+
+        render_img_concat = render_img.reshape([-1, 6])
+        normal_length = np.linalg.norm(render_img_concat[:, 3:6], axis=1)
+        valid_pixel = normal_length >= 0.1
+        color_valid = np.concatenate(
+            (color_valid, render_img_concat[:, 0:3][valid_pixel]), axis=0
+        )
+
+        position_img = load_exr(
+            f"dataset_raw/position/Camera_{i:02d}.exr",
+            channels=(
                 "ViewLayer.Combined.R",
                 "ViewLayer.Combined.G",
                 "ViewLayer.Combined.B",
             ),
         )
-        pn[i, :, :, 0:3] = pnc_img[0:-1:down_scale, 0:-1:down_scale, 0:3] / bbx_size
-        pn[i, :, :, 3:6] = pnc_img[0:-1:down_scale, 0:-1:down_scale, 3:6]
-        color[i, :, :, :] = pnc_img[0:-1:down_scale, 0:-1:down_scale, 6:9]
+
+        position_img_concat = position_img.reshape([-1, 3])
+        pn[i, :, :, 0:3] = position_img[:, :, :]
+
+        normal_img = load_exr(
+            f"dataset_raw/normal/Camera_{i:02d}.exr",
+            channels=(
+                "ViewLayer.Combined.R",
+                "ViewLayer.Combined.G",
+                "ViewLayer.Combined.B",
+            ),
+        )
+        normal_img_concat = normal_img.reshape([-1, 3])
+        pn[i, :, :, 3:6] = normal_img[:, :, :]
+
+        pn_concat = np.concatenate(
+            (position_img_concat[valid_pixel], normal_img_concat[valid_pixel]), axis=1
+        )
+        pn_valid = np.concatenate((pn_valid, pn_concat), axis=0)
 
         vuv_img = load_exr(
             f"dataset_raw/vuv/Camera_{i:02d}.exr",
@@ -72,27 +107,43 @@ def collect_dataset(img_num=64, down_scale=2, bbx_size=10.0):
                 "ViewLayer.UV.V",
             ),
         )
-        v[i, :, :, :] = vuv_img[0:-1:down_scale, 0:-1:down_scale, 0:3]
-        uv[i, :, :, :] = vuv_img[0:-1:down_scale, 0:-1:down_scale, 3:5]
+        vuv_img_concat = vuv_img.reshape([-1, 5])
+        v[i, :, :, :] = vuv_img[:, :, 0:3]
+        uv[i, :, :, :] = vuv_img[:, :, 3:5]
+        v_valid = np.concatenate((v_valid, vuv_img_concat[:, 0:3][valid_pixel]), axis=0)
 
     np.save(
-        f"dataset/render_x-{down_scale}", {"pn": pn, "v": v, "uv": uv, "color": color}
+        f"dataset/render_x",
+        {
+            "pn0": pn[0, :, :, :],
+            "v0": v[0, :, :, :],
+            "uv0": uv[0, :, :, :],
+            "color0": color[0, :, :, :],
+            "pn_valid": pn_valid,
+            "v_valid": v_valid,
+            "color_valid": color_valid,
+        },
     )
 
 
-def prepare_dataloader(path="dataset/render_x-2.npy", batch_size=10):
+def prepare_dataloader(path="dataset/render_x.npy", batch_size=100):
     dataset = np.load(path, allow_pickle=True)
-    pn = dataset.item().get("pn")
-    v = dataset.item().get("v")
-    color = dataset.item().get("color")
+    pn = dataset.item().get("pn_valid")
+    v = dataset.item().get("v_valid")
+    color = dataset.item().get("color_valid")
 
-    train_inputs_pn = pn
-    train_inputs_v = v
-    test_inputs_pn = pn[0 : pn.shape[0] : 8, :, :, :]
-    test_inputs_v = v[0 : v.shape[0] : 8, :, :, :]
+    shape_l = pn.shape[0]
+    w, h = (1024, 512)
+    reshape_nums = int(math.floor(shape_l / (w * h)))
+    reshape_all_size = reshape_nums * w * h
 
-    train_output_color = color[:, :, :, :]
-    test_output_color = color[0 : color.shape[0] : 8, :, :, :]
+    train_inputs_pn = pn[0:reshape_all_size, :].reshape(-1, w, h, 6)
+    train_inputs_v = v[0:reshape_all_size, :].reshape(-1, w, h, 3)
+    test_inputs_pn = train_inputs_pn[0 : train_inputs_pn.shape[0] : 8, :, :, :]
+    test_inputs_v = train_inputs_v[0 : train_inputs_v.shape[0] : 8, :, :, :]
+
+    train_output_color = color[0:reshape_all_size, :].reshape(-1, w, h, 3)
+    test_output_color = train_output_color[0 : train_output_color.shape[0] : 8, :, :, :]
 
     def loader(pn, v, color, batch_size):
         pn = torch.from_numpy(pn).float()
@@ -109,7 +160,7 @@ def prepare_dataloader(path="dataset/render_x-2.npy", batch_size=10):
     return (
         loader(train_inputs_pn, train_inputs_v, train_output_color, batch_size),
         loader(test_inputs_pn, test_inputs_v, test_output_color, batch_size),
-        pn.shape[1:3],
+        (w, h),
     )
 
 

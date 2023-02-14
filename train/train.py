@@ -10,7 +10,7 @@ from model import SirenGINet
 from vis import load_and_vis
 
 device = torch.device("cuda:0")
-BATCH_SIZE = 3
+BATCH_SIZE = 1
 TRAIN_EPOCHS = 3000
 
 train_loader, test_loader, img_shape = prepare_dataloader(batch_size=BATCH_SIZE)
@@ -25,7 +25,7 @@ def train_epoch(epoch, model, optimizer):
         pn = pn.to(device)
         v = v.to(device)
         optimizer.zero_grad()
-        pred_output = model(pn, v)
+        pred_output  = model(pn, v)
         color = color.to(device)
         loss = loss_fn(pred_output, color)
         loss.backward()
@@ -88,7 +88,7 @@ def train(model, save_name):
         test_loss.append(test_epoch(epoch, model))
         if epoch % 100 == 0:
             torch.save(model.state_dict(), f"model/{save_name}_{epoch}.pth")
-            load_and_vis(f"model/{save_name}_{epoch}.pth")
+            load_and_vis(model, f"{save_name}_{epoch}")
     torch.save(model.state_dict(), "model/" + save_name + ".pth")
     plot(train_loss, test_loss, save_name)
 
@@ -101,8 +101,10 @@ def test(model, saved_name):
 
 
 def train_all():
-    model = SirenGINet()
-    train(model, f"model_siren")
+    dim_hidden = 64
+    num_layers = 5
+    model = SirenGINet(dim_hidden, num_layers)
+    train(model, f"model_siren_{dim_hidden}_{num_layers}")
 
 
 if __name__ == "__main__":
