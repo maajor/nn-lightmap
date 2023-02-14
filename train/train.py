@@ -10,8 +10,8 @@ from model import SirenGINet
 from vis import load_and_vis
 
 device = torch.device("cuda:0")
-BATCH_SIZE = 1
-TRAIN_EPOCHS = 3000
+BATCH_SIZE = 3
+TRAIN_EPOCHS = 7000
 
 train_loader, test_loader, img_shape = prepare_dataloader(batch_size=BATCH_SIZE)
 

@@ -31,7 +31,7 @@ def load_and_vis(
     # fig.add_subplot(1, 2, 2)
     # plt.imshow(color[image_id, :, :, 0:3])
     # plt.waitforbuttonpress()
-    plt.savefig(f"{name}.png")
+    plt.savefig(f"model/{name}.png")
 
 
 if __name__ == "__main__":
