@@ -9,9 +9,10 @@ from loader import prepare_dataloader
 from model import SirenGINet
 from vis import load_and_vis
 from torch.utils.tensorboard import SummaryWriter
+from torch import nn
 
 device = torch.device("cuda:0")
-BATCH_SIZE = 3
+BATCH_SIZE = 2
 TRAIN_EPOCHS = 300
 
 train_loader, test_loader, img_shape = prepare_dataloader(batch_size=BATCH_SIZE)
@@ -105,22 +106,26 @@ def test(model, saved_name):
     test_epoch(0, model)
 
 
-def train_all(dim_hidden=64, num_layers=5, dim_lm=32):
-    model = SirenGINet(dim_hidden, num_layers, dim_lm=dim_lm)
-    comment = f'dh_{dim_hidden}_nl_{num_layers}_dl_{dim_lm}'
+def train_all(dim_hidden=64, num_layers=5, dim_lm=32, activation='identity'):
+    model = SirenGINet(dim_hidden, num_layers, dim_lm=dim_lm, activation= nn.Identity if activation == 'identity' else nn.Sigmoid)
+    comment = f'dh_{dim_hidden}_nl_{num_layers}_dl_{dim_lm}_{activation}'
     from datetime import datetime
     current_time = datetime.now().strftime('%b%d_%H-%M-%S')
     writer = SummaryWriter(comment=comment, log_dir=f'/root/tf-logs/runs_{current_time}_{comment}')
-    train(model, f"model_siren_{dim_hidden}_{num_layers}", writer)
+    train(model, f"model_siren_{dim_hidden}_{num_layers}_{dim_lm}_{activation}", writer)
     writer.close()
 
 
 if __name__ == "__main__":
-    train_all(64, 5, 32)
-    train_all(128, 5, 32)
-    train_all(128, 3, 32)
-    train_all(64, 3, 32)
-    train_all(64, 5, 16)
-    train_all(128, 5, 16)
-    train_all(128, 3, 16)
-    train_all(64, 3, 16)
+    train_all(64, 5, 16, 'identity')
+    train_all(128, 5, 16, 'identity')
+    train_all(64, 3, 16, 'identity')
+    train_all(128, 3, 16, 'identity')
+    train_all(64, 5, 16, 'sigmoid')
+    train_all(128, 5, 16, 'sigmoid')
+    train_all(64, 3, 16, 'sigmoid')
+    train_all(128, 3, 16, 'sigmoid')
+    train_all(64, 5, 32, 'identity')
+    train_all(128, 5, 32, 'identity')
+    train_all(64, 3, 32, 'identity')
+    train_all(128, 3, 32, 'identity')

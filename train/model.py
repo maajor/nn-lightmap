@@ -6,7 +6,7 @@ from siren_pytorch import Siren
 
 
 class SirenGINet(nn.Module):
-    def __init__(self, dim_hidden=64, num_layer=2, dim_lm=32):
+    def __init__(self, dim_hidden=64, num_layer=2, dim_lm=32, activation=nn.Identity):
         super().__init__()
 
         self.lm_layers = nn.ModuleList([])
@@ -27,7 +27,7 @@ class SirenGINet(nn.Module):
             self.rf_layers.append(Siren(dim_in=dim_hidden, dim_out=dim_hidden))
         # l8
         self.rf_layers.append(
-            Siren(dim_in=dim_hidden, dim_out=3, activation=nn.Sigmoid())
+            Siren(dim_in=dim_hidden, dim_out=3, activation=activation())
         )
 
     def forward(self, pn, v):
