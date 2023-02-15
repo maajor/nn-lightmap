@@ -7,6 +7,7 @@ import Imath
 import numpy as np
 import math
 from tqdm import tqdm
+from PIL import Image
 
 
 def get_exr_data(path: str):
@@ -78,8 +79,8 @@ def collect_dataset(img_num=64):
             ),
         )
 
-        position_img_concat = position_img.reshape([-1, 3])
-        pn[i, :, :, 0:3] = position_img[:, :, :]
+        position_img_concat = position_img.reshape([-1, 3]) * 2.0 - 1.0
+        pn[i, :, :, 0:3] = position_img[:, :, :] * 2.0 - 1.0
 
         normal_img = load_exr(
             f"dataset_raw/normal/Camera_{i:02d}.exr",
@@ -89,8 +90,8 @@ def collect_dataset(img_num=64):
                 "ViewLayer.Combined.B",
             ),
         )
-        normal_img_concat = normal_img.reshape([-1, 3])
-        pn[i, :, :, 3:6] = normal_img[:, :, :]
+        normal_img_concat = normal_img.reshape([-1, 3]) * 2.0 - 1.0
+        pn[i, :, :, 3:6] = normal_img[:, :, :] * 2.0 - 1.0
 
         pn_concat = np.concatenate(
             (position_img_concat[valid_pixel], normal_img_concat[valid_pixel]), axis=1
@@ -107,17 +108,17 @@ def collect_dataset(img_num=64):
                 "ViewLayer.UV.V",
             ),
         )
-        vuv_img_concat = vuv_img.reshape([-1, 5])
-        v[i, :, :, :] = vuv_img[:, :, 0:3]
+        vuv_img_concat = vuv_img.reshape([-1, 5]) * 2.0 - 1.0
+        v[i, :, :, :] = vuv_img[:, :, 0:3] * 2.0 - 1.0
         uv[i, :, :, :] = vuv_img[:, :, 3:5]
         v_valid = np.concatenate((v_valid, vuv_img_concat[:, 0:3][valid_pixel]), axis=0)
 
     np.save(
-        f"dataset/render_x",
+        f"dataset/render_2k",
         {
             "pn0": pn[0, :, :, :],
             "v0": v[0, :, :, :],
-            "uv0": uv[0, :, :, :],
+            # "uv0": uv[0, :, :, :],
             "color0": color[0, :, :, :],
             "pn_valid": pn_valid,
             "v_valid": v_valid,
@@ -126,7 +127,7 @@ def collect_dataset(img_num=64):
     )
 
 
-def prepare_dataloader(path="dataset/render_x.npy", batch_size=100):
+def prepare_dataloader(path="dataset/render_2k.npy", batch_size=100):
     dataset = np.load(path, allow_pickle=True)
     pn = dataset.item().get("pn_valid")
     v = dataset.item().get("v_valid")
@@ -164,5 +165,20 @@ def prepare_dataloader(path="dataset/render_x.npy", batch_size=100):
     )
 
 
+def preview_image():
+    position_img = load_exr(
+            f"dataset_raw/normal/Camera_00.exr",
+            channels=(
+                "ViewLayer.Combined.R",
+                "ViewLayer.Combined.G",
+                "ViewLayer.Combined.B",
+            ),
+        )
+    print(position_img.shape)
+    print(position_img.dtype)
+    img = Image.fromarray((position_img * 255.0).astype(np.uint8))
+    img.save('preview.png')
+
 if __name__ == "__main__":
     collect_dataset()
+    # preview_image()

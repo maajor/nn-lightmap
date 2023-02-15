@@ -3,10 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from model import SirenGINet
 import time
+from PIL import Image
 
 
 def load_and_vis(
-    model, name, dataset_path="dataset/render_x.npy"
+    model, name, dataset_path="dataset/render_2k.npy"
 ):
     device = torch.device("cuda:0")
 
@@ -25,13 +26,8 @@ def load_and_vis(
         print(diff * 1000)
     img = pred_output.cpu().detach().numpy()
 
-    fig = plt.figure(figsize=(10, 7))
-    # fig.add_subplot(1, 2, 1)
-    plt.imshow(img[:, :, 0:3])
-    # fig.add_subplot(1, 2, 2)
-    # plt.imshow(color[image_id, :, :, 0:3])
-    # plt.waitforbuttonpress()
-    plt.savefig(f"model/{name}.png")
+    img = Image.fromarray((img * 255.0).astype(np.uint8))
+    img.save(f"model/{name}.png")
 
 
 if __name__ == "__main__":
