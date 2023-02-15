@@ -7,7 +7,7 @@ from PIL import Image
 
 
 def load_and_vis(
-    model, name, dataset_path="dataset/render_2k.npy"
+    model, name, epoch, writer, dataset_path="dataset/render_2k.npy"
 ):
     device = torch.device("cuda:0")
 
@@ -26,8 +26,9 @@ def load_and_vis(
         print(diff * 1000)
     img = pred_output.cpu().detach().numpy()
 
-    img = Image.fromarray((img * 255.0).astype(np.uint8))
-    img.save(f"model/{name}.png")
+    # img_pil = Image.fromarray((img * 255.0).astype(np.uint8))
+    # img_pil.save(f"model/{name}.png")
+    writer.add_images('output', img, global_step=epoch, dataformats='HWC')
 
 
 if __name__ == "__main__":

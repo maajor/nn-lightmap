@@ -2,3 +2,6 @@ dataset/
 dataset_raw/
 *.pyc
 __pycache__
+
+model/
+runs/
