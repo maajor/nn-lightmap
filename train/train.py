@@ -15,7 +15,7 @@ TRAIN_EPOCHS = 7000
 
 train_loader, test_loader, img_shape = prepare_dataloader(batch_size=BATCH_SIZE)
 
-loss_fn = torch.nn.MSELoss(reduction="sum")
+loss_fn = torch.nn.MSELoss(reduction="mean")
 
 
 def train_epoch(epoch, model, optimizer):
@@ -32,7 +32,7 @@ def train_epoch(epoch, model, optimizer):
         train_loss += loss.item()
         optimizer.step()
     train_loss = (
-        train_loss * 255 * 255 / (len(train_loader.dataset) * (img_shape[0] * img_shape[1]))
+        train_loss * 255 * 255 / (len(train_loader.dataset))
     )
     print("====> Epoch: {} Average loss: {:.4f}".format(epoch, train_loss))
     return train_loss
@@ -50,7 +50,7 @@ def test_epoch(epoch, model):
             test_loss += loss_fn(pred_output, output).item()
 
     test_loss = (
-        test_loss * 255 * 255 / (len(test_loader.dataset) * (img_shape[0] * img_shape[1]))
+        test_loss * 255 * 255 / (len(test_loader.dataset))
     )
     print("====> Epoch: {} Test set loss: {:.4f}".format(epoch, test_loss))
     return test_loss

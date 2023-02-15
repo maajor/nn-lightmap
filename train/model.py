@@ -6,7 +6,7 @@ from siren_pytorch import Siren
 
 
 class SirenGINet(nn.Module):
-    def __init__(self, dim_hidden=64, num_layer=2):
+    def __init__(self, dim_hidden=64, num_layer=2, dim_lm=32):
         super().__init__()
 
         self.lm_layers = nn.ModuleList([])
@@ -18,16 +18,16 @@ class SirenGINet(nn.Module):
         for _ in range(num_layer):
             self.lm_layers.append(Siren(dim_in=dim_hidden, dim_out=dim_hidden))
         # l4
-        self.lm_layers.append(Siren(dim_in=dim_hidden, dim_out=32))
+        self.lm_layers.append(Siren(dim_in=dim_hidden, dim_out=dim_lm))
         # view direction input up dim
-        self.vup_layers = Siren(dim_in=3, dim_out=32, w0=60, is_first=True)  # v input
+        self.vup_layers = Siren(dim_in=3, dim_out=dim_lm, w0=60, is_first=True)  # v input
         # rf layers
-        self.rf_layers.append(Siren(dim_in=64, dim_out=dim_hidden))
+        self.rf_layers.append(Siren(dim_in=dim_lm*2, dim_out=dim_hidden))
         for _ in range(num_layer):
             self.rf_layers.append(Siren(dim_in=dim_hidden, dim_out=dim_hidden))
         # l8
         self.rf_layers.append(
-            Siren(dim_in=dim_hidden, dim_out=3, activation=nn.Identity())
+            Siren(dim_in=dim_hidden, dim_out=3, activation=nn.Sigmoid())
         )
 
     def forward(self, pn, v):
