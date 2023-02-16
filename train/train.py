@@ -100,32 +100,21 @@ def train(model, save_name, writer):
 
 
 def test(model, saved_name):
-    model.load_state_dict(torch.load("model/" + saved_name + ".pth"))
+    model.load_state_dict(torch.load("model/" + saved_name + ".pth")) 
     model = model.to(device)
     model.eval()
     test_epoch(0, model)
 
 
-def train_all(dim_hidden=64, num_layers=5, dim_lm=32, activation='identity'):
-    model = SirenGINet(dim_hidden, num_layers, dim_lm=dim_lm, activation= nn.Identity if activation == 'identity' else nn.Sigmoid)
-    comment = f'dh_{dim_hidden}_nl_{num_layers}_dl_{dim_lm}_{activation}'
+def train_all(lm_dim=256, lm_layer=5, dim_hidden=32, rf_dim=64, rf_layer=2):
+    model = SirenGINet(lm_dim, lm_layer, dim_hidden, rf_dim, rf_layer)
+    comment = f'{lm_dim}x{lm_layer}x{dim_hidden}x{rf_dim}x{rf_layer}'
     from datetime import datetime
     current_time = datetime.now().strftime('%b%d_%H-%M-%S')
     writer = SummaryWriter(comment=comment, log_dir=f'/root/tf-logs/runs_{current_time}_{comment}')
-    train(model, f"model_siren_{dim_hidden}_{num_layers}_{dim_lm}_{activation}", writer)
+    train(model, f"model_siren_{comment}", writer)
     writer.close()
 
 
 if __name__ == "__main__":
-    train_all(64, 5, 16, 'identity')
-    train_all(128, 5, 16, 'identity')
-    train_all(64, 3, 16, 'identity')
-    train_all(128, 3, 16, 'identity')
-    train_all(64, 5, 16, 'sigmoid')
-    train_all(128, 5, 16, 'sigmoid')
-    train_all(64, 3, 16, 'sigmoid')
-    train_all(128, 3, 16, 'sigmoid')
-    train_all(64, 5, 32, 'identity')
-    train_all(128, 5, 32, 'identity')
-    train_all(64, 3, 32, 'identity')
-    train_all(128, 3, 32, 'identity')
+    train_all(256, 5, 32, 64, 3)

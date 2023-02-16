@@ -134,7 +134,7 @@ def prepare_dataloader(path="dataset/render_2k.npy", batch_size=100):
     color = dataset.item().get("color_valid")
 
     shape_l = pn.shape[0]
-    w, h = (1024, 512)
+    w, h = (512, 512)
     reshape_nums = int(math.floor(shape_l / (w * h)))
     reshape_all_size = reshape_nums * w * h
 
