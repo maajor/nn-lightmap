@@ -45,3 +45,21 @@ class SirenGINet(nn.Module):
             x = layer(x)
 
         return x
+
+    def bake_lightmap(self, pn):
+        x = pn
+        # lightmap phase
+        for layer in self.lm_layers:
+            x = layer(x)
+
+        return x
+
+    def inference_with_lightmap(self, lightmap, v):
+        vup = self.vup_layers(v)
+        x = torch.cat((lightmap, vup), -1)
+
+        # refinement phase
+        for layer in self.rf_layers:
+            x = layer(x)
+
+        return x

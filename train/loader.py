@@ -28,7 +28,6 @@ def load_exr(path: str, channels=("R", "G", "B")):
         np.array(chs)
         .reshape([len(channels), sz[1], sz[0]])
         .transpose((2, 1, 0))
-        .clip(0, 1)
     )
     return img
 
