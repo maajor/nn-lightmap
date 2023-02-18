@@ -17,5 +17,5 @@ def render_all_cam_views(render_dir):
     return {"FINISHED"}
 
 
-res = render_all_cam_views("C:\\Users\\hello\\Desktop\\baker\\render")
+res = render_all_cam_views(bpy.path.abspath('//render'))
 print(res)

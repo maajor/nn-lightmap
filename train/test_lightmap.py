@@ -7,8 +7,8 @@ import array
 from PIL import Image
 from model import SirenGINet
 
-model = SirenGINet(256, 5, 32, 64, 3)
-model.load_state_dict(torch.load("model/model_siren_256x5x32x64x3_4500.pth")) 
+model = SirenGINet(256, 5, 32, 32, 3)
+model.load_state_dict(torch.load("model/model_siren_256x5x32x32x3_2400.pth")) 
 
 def load_exr(path: str, channels=("R", "G", "B")):
     file = OpenEXR.InputFile(path)
@@ -24,7 +24,7 @@ def load_exr(path: str, channels=("R", "G", "B")):
     return img
 
 def get_uv():
-    uv = load_exr('lightmap/pvuv0.exr', ('ViewLayer.UV.U', 'ViewLayer.UV.V'))
+    uv = load_exr('lightmap/vuv0.exr', ('ViewLayer.UV.U', 'ViewLayer.UV.V'))
     return uv
 
 def get_groundtruth_pn():
@@ -48,7 +48,7 @@ def bilinear_sample_texture(u0, v0, u1, v1, ru, rv, texture):
 def get_lightmap_pn():
     uv = get_uv()
     position = load_exr('lightmap/position.exr') * 2.0 - 1.0
-    normal = load_exr('lightmap/pnormal.exr') * 2.0 - 1.0
+    normal = load_exr('lightmap/normal.exr') * 2.0 - 1.0
     lmw, lmh, _ = position.shape
     w, h, c = uv.shape
     npview = np.zeros((w, h, 6))
@@ -99,7 +99,7 @@ def predict_with_lightmap_pn():
         img_pil = Image.fromarray((pred_output[:,:,0:3] * 255.0).astype(np.uint8))
         img_pil.save(f"predict_with_lightmap_pn.png")
 
-def bake_lightmap():
+def get_lightmap():
     pn = get_lightmap_pn()
 
     model.eval()
@@ -109,8 +109,22 @@ def bake_lightmap():
         lm = lm.numpy()
     return lm
 
+def bake_lightmap():
+    lm = get_lightmap()
+    w,h,c = lm.shape
+    for i in range(0, c, 4):
+        channels = lm[:,:,i:i+4]
+        min = np.min(channels)
+        max = np.max(channels)
+        print(f'channel {i}-{i+4} has min {min} and max {max}')
+        channels = (channels + min) / (max - min)
+        img_pil = Image.fromarray((channels * 255.0).astype(np.uint8))
+        img_pil.save(f"lightmap_{i/4}.png")
+
+
+
 def inference_with_lightmap():
-    lightmap = bake_lightmap()
+    lightmap = get_lightmap()
     view = get_groundtruth_v()
 
     model.eval()
@@ -124,4 +138,5 @@ def inference_with_lightmap():
         img_pil.save(f"render_with_lightmap.png")
 
 if __name__ == '__main__':
-    inference_with_lightmap()
+    bake_lightmap()
+    # inference_with_lightmap()

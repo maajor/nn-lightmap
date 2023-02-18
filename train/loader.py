@@ -8,6 +8,7 @@ import numpy as np
 import math
 from tqdm import tqdm
 from PIL import Image
+from pathlib import Path
 
 
 def get_exr_data(path: str):
@@ -31,98 +32,80 @@ def load_exr(path: str, channels=("R", "G", "B")):
     )
     return img
 
+def collect():
+    path = Path('dataset_raw/render')
+    files = path.glob('**/*.exr').l
+    for file in tqdm(path.glob('**/*.exr')):
+        print(file.name)
+
 
 def collect_dataset(img_num=64):
-    img_data = get_exr_data("dataset_raw/render/Camera_00.exr")
-    used_size = (
-        int(math.floor(img_data[0])),
-        int(math.floor(img_data[1])),
-    )
-    pn = np.zeros((img_num, used_size[0], used_size[1], 6), dtype=np.float16)
-    v = np.zeros((img_num, used_size[0], used_size[1], 3), dtype=np.float16)
-    uv = np.zeros((img_num, used_size[0], used_size[1], 2), dtype=np.float16)
-    color = np.zeros((img_num, used_size[0], used_size[1], 3), dtype=np.float16)
-
     pn_valid = np.zeros((0, 6), dtype=np.float16)
     v_valid = np.zeros((0, 3), dtype=np.float16)
     color_valid = np.zeros((0, 3), dtype=np.float16)
 
-    for i in tqdm(range(img_num)):
-        print(f"load {i}")
-        render_img = load_exr(
-            f"dataset_raw/render/Camera_{i:02d}.exr",
-            channels=(
-                "ViewLayer.Combined.R",
-                "ViewLayer.Combined.G",
-                "ViewLayer.Combined.B",
-                "ViewLayer.Normal.X",
-                "ViewLayer.Normal.Y",
-                "ViewLayer.Normal.Z",
-            ),
-        )
-        color[i, :, :, :] = render_img[:, :, 0:3]
+    path = Path('dataset_raw/render')
+    files = [f for f in path.glob('**/*.exr')]
+    i = 0
+    for file in tqdm(files):
+        print(f"load {file.name}")
 
-        render_img_concat = render_img.reshape([-1, 6])
-        normal_length = np.linalg.norm(render_img_concat[:, 3:6], axis=1)
+        pnv_image = load_exr(
+            f"dataset_raw/pnv/{file.name}",
+            channels=(
+                "View Layer.Combined.R",
+                "View Layer.Combined.G",
+                "View Layer.Combined.B",
+                "View Layer.Position.X",
+                "View Layer.Position.Y",
+                "View Layer.Position.Z",
+                "View Layer.Normal.X",
+                "View Layer.Normal.Y",
+                "View Layer.Normal.Z",
+            ),
+        )[0:-1:2, 0:-1:2, :]
+
+        pnv_image_concat = pnv_image.reshape([-1, 9])
+        normal_length = np.linalg.norm(pnv_image_concat[:, 6:9], axis=1)
         valid_pixel = normal_length >= 0.1
+
+        if i == 0:
+            pn0 = pnv_image[:,:, 3:9].astype(np.float16)
+        pn_valid = np.concatenate((pn_valid, pnv_image_concat[:, 3:9][valid_pixel]), axis=0)
+
+        if i == 0:
+            v0 = pnv_image[:,:, 0:3].astype(np.float16)
+        v_valid = np.concatenate((v_valid, pnv_image_concat[:, 0:3][valid_pixel]), axis=0)
+
+        render_img = load_exr(
+            str(file),
+            channels=(
+                'R', 'G', 'B'
+            ),
+        )[0:-1:2, 0:-1:2, :]
+        if i == 0:
+            color0 = render_img[:,:, :].astype(np.float16)
+
+        render_img_concat = render_img.reshape([-1, 3])
+        color_valid_image = render_img_concat[valid_pixel]
+        print(color_valid_image.shape)
         color_valid = np.concatenate(
-            (color_valid, render_img_concat[:, 0:3][valid_pixel]), axis=0
+            (color_valid, color_valid_image), axis=0
         )
 
-        position_img = load_exr(
-            f"dataset_raw/position/Camera_{i:02d}.exr",
-            channels=(
-                "ViewLayer.Combined.R",
-                "ViewLayer.Combined.G",
-                "ViewLayer.Combined.B",
-            ),
-        )
-
-        position_img_concat = position_img.reshape([-1, 3]) * 2.0 - 1.0
-        pn[i, :, :, 0:3] = position_img[:, :, :] * 2.0 - 1.0
-
-        normal_img = load_exr(
-            f"dataset_raw/normal/Camera_{i:02d}.exr",
-            channels=(
-                "ViewLayer.Combined.R",
-                "ViewLayer.Combined.G",
-                "ViewLayer.Combined.B",
-            ),
-        )
-        normal_img_concat = normal_img.reshape([-1, 3]) * 2.0 - 1.0
-        pn[i, :, :, 3:6] = normal_img[:, :, :] * 2.0 - 1.0
-
-        pn_concat = np.concatenate(
-            (position_img_concat[valid_pixel], normal_img_concat[valid_pixel]), axis=1
-        )
-        pn_valid = np.concatenate((pn_valid, pn_concat), axis=0)
-
-        vuv_img = load_exr(
-            f"dataset_raw/vuv/Camera_{i:02d}.exr",
-            channels=(
-                "ViewLayer.Combined.R",
-                "ViewLayer.Combined.G",
-                "ViewLayer.Combined.B",
-                "ViewLayer.UV.U",
-                "ViewLayer.UV.V",
-            ),
-        )
-        vuv_img_concat = vuv_img.reshape([-1, 5]) * 2.0 - 1.0
-        v[i, :, :, :] = vuv_img[:, :, 0:3] * 2.0 - 1.0
-        uv[i, :, :, :] = vuv_img[:, :, 3:5]
-        v_valid = np.concatenate((v_valid, vuv_img_concat[:, 0:3][valid_pixel]), axis=0)
+        i = i + 1
 
     np.save(
-        f"dataset/render_2k",
+        f"dataset/render_text",
         {
-            "pn0": pn[0, :, :, :],
-            "v0": v[0, :, :, :],
-            # "uv0": uv[0, :, :, :],
-            "color0": color[0, :, :, :],
+            "pn0": pn0,
+            "v0": v0,
+            "color0": color0,
             "pn_valid": pn_valid,
             "v_valid": v_valid,
             "color_valid": color_valid,
         },
+        protocol=4
     )
 
 
@@ -165,19 +148,36 @@ def prepare_dataloader(path="dataset/render_2k.npy", batch_size=100):
 
 
 def preview_image():
-    position_img = load_exr(
-            f"dataset_raw/normal/Camera_00.exr",
+    render_img = load_exr(
+            f"dataset_raw/render/Camera.exr",
             channels=(
-                "ViewLayer.Combined.R",
-                "ViewLayer.Combined.G",
-                "ViewLayer.Combined.B",
+                "R", "G", "B", "A"
             ),
         )
-    print(position_img.shape)
-    print(position_img.dtype)
-    img = Image.fromarray((position_img * 255.0).astype(np.uint8))
+    print(render_img.shape)
+    print(render_img.dtype)
+    print(render_img[:,:,3])
+    img = Image.fromarray((render_img * 255.0).astype(np.uint8))
     img.save('preview.png')
 
+def preview_data():
+    dataset = np.load('dataset/render_x.npy', allow_pickle=True)
+    pn = dataset.item().get("pn0")
+    v = dataset.item().get("v0")
+    color = dataset.item().get("color0")
+    pn01 = pn
+    v01 = v
+    img = Image.fromarray((pn01[:,:,0:3] * 255.0).astype(np.uint8))
+    img.save('preview1.png')
+    img = Image.fromarray((pn01[:,:,3:6] * 255.0).astype(np.uint8))
+    img.save('preview2.png')
+    img = Image.fromarray((v01[:,:,0:3] * 255.0).astype(np.uint8))
+    img.save('preview3.png')
+    img = Image.fromarray((color[:,:,0:3] * 255.0).astype(np.uint8))
+    img.save('preview4.png')
+
 if __name__ == "__main__":
+    # collect()
     collect_dataset()
     # preview_image()
+    # preview_data()

@@ -37,6 +37,5 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load("model/model_siren_256x5x32x64x3_4500.pth")) 
 
     device = torch.device("cuda:0")
-    model.load_state_dict(torch.load("model/model_siren_256x5x32x64x2.pth"))
     model = model.to(device)
     load_and_vis(model, "model_siren")
