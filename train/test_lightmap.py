@@ -163,7 +163,20 @@ def inference_with_lightmap():
         img_pil = Image.fromarray((render * 255.0).astype(np.uint8))
         img_pil.save(f"render_with_lightmap.png")
 
+def debug_lightmap():
+    v = get_groundtruth_v()
+
+    model.eval()
+    with torch.no_grad():
+        v = torch.from_numpy(v).float()
+        pred_output = model.debug_shader(v)
+        pred_output = pred_output.numpy().clip(0,1)
+        img_pil = Image.fromarray((pred_output[:, :, 0:3] * 255.0).astype(np.uint8))
+        img_pil.save(f"debug_shader.png")
+
 
 if __name__ == "__main__":
-    bake_lightmap()
+    # bake_lightmap()
     # inference_with_lightmap()
+    predict_with_gt_pn()
+    debug_lightmap()

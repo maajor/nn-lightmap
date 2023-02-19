@@ -60,7 +60,7 @@ def collect_dataset(img_num=64):
                 "View Layer.Normal.Y",
                 "View Layer.Normal.Z",
             ),
-        )[0:-1:2, 0:-1:2, :]
+        )
 
         pnv_image_concat = pnv_image.reshape([-1, 9])
         normal_length = np.linalg.norm(pnv_image_concat[:, 6:9], axis=1)
@@ -78,7 +78,7 @@ def collect_dataset(img_num=64):
             (v_valid, pnv_image_concat[:, 0:3][valid_pixel]), axis=0
         )
 
-        render_img = load_exr(str(file), channels=("R", "G", "B"),)[0:-1:2, 0:-1:2, :]
+        render_img = load_exr(str(file), channels=("R", "G", "B"),)
         if i == 0:
             color0 = render_img[:, :, :].astype(np.float16)
 
@@ -89,25 +89,22 @@ def collect_dataset(img_num=64):
 
         i = i + 1
 
-    np.save(
-        f"dataset/render_text",
-        {
-            "pn0": pn0,
-            "v0": v0,
-            "color0": color0,
-            "pn_valid": pn_valid,
-            "v_valid": v_valid,
-            "color_valid": color_valid,
-        },
-        protocol=4,
+    np.savez(
+        f"dataset/render_text_2k_uc",
+        pn0=pn0,
+        v0=v0,
+        color0=color0,
+        pn_valid=pn_valid,
+        v_valid=v_valid,
+        color_valid=color_valid
     )
 
 
-def prepare_dataloader(path="dataset/render_2k.npy", batch_size=100):
+def prepare_dataloader(path="dataset/render_text_2k.npz", batch_size=100):
     dataset = np.load(path, allow_pickle=True)
-    pn = dataset.item().get("pn_valid")
-    v = dataset.item().get("v_valid")
-    color = dataset.item().get("color_valid")
+    pn = dataset["pn_valid"]
+    v = dataset["v_valid"]
+    color = dataset["color_valid"]
 
     shape_l = pn.shape[0]
     w, h = (512, 512)
@@ -153,12 +150,10 @@ def preview_image():
 
 
 def preview_data():
-    dataset = np.load("dataset/render_x.npy", allow_pickle=True)
-    pn = dataset.item().get("pn0")
-    v = dataset.item().get("v0")
-    color = dataset.item().get("color0")
-    pn01 = pn
-    v01 = v
+    dataset = np.load("dataset/render_text_2k.npz", allow_pickle=True)
+    pn01 = dataset['pn0'] * 0.5 + 0.5
+    v01 = dataset['v0'] * 0.5 + 0.5
+    color = np.power(dataset['color0'], 0.45)
     img = Image.fromarray((pn01[:, :, 0:3] * 255.0).astype(np.uint8))
     img.save("preview1.png")
     img = Image.fromarray((pn01[:, :, 3:6] * 255.0).astype(np.uint8))
