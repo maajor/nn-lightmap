@@ -164,19 +164,27 @@ def inference_with_lightmap():
         img_pil.save(f"render_with_lightmap.png")
 
 def debug_lightmap():
-    v = get_groundtruth_v()
+    lm = np.ones((32))
+    v = np.array([0.5, 0.5, 0.5])
 
     model.eval()
     with torch.no_grad():
-        v = torch.from_numpy(v).float()
-        pred_output = model.debug_shader(v)
-        pred_output = pred_output.numpy().clip(0,1)
-        img_pil = Image.fromarray((pred_output[:, :, 0:3] * 255.0).astype(np.uint8))
-        img_pil.save(f"debug_shader.png")
+        lmt = torch.from_numpy(lm).float()
+        vt = torch.from_numpy(v).float()
+        pred_output = model.inference_with_lightmap(lmt, vt)
+        # print(pred_output)
+        print((pred_output)*255)
+        #w = model.rf_layers[0].weight.detach().numpy()
+        #b = model.rf_layers[0].bias.detach().numpy()
+        # a = model.vup_layers.activation.w0
+        #print(w)
+        #print(b)
+        # print(np.matmul(w, v))
+        # print(np.sin((np.matmul(w, v) + b)*a))
 
 
 if __name__ == "__main__":
-    # bake_lightmap()
+    bake_lightmap()
     # inference_with_lightmap()
-    predict_with_gt_pn()
-    debug_lightmap()
+    # predict_with_gt_pn()
+    # debug_lightmap()

@@ -1,8 +1,6 @@
-import { useState } from 'react'
 import { extend } from '@react-three/fiber';
-import { Stats, OrbitControls, useGLTF, useTexture } from '@react-three/drei'
+import { Stats, OrbitControls, GizmoHelper, GizmoViewport } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
-import {Color} from 'three'
 import { NnLightmapMaterial } from './NnLightmapMaterial';
 import {Scene} from './Scene';
 
@@ -13,7 +11,7 @@ function App() {
   return (
     <div id="canvas-container">
       <Canvas
-        camera={{ position: [10, 10, 10] }}>
+        camera={{ position: [10, 10, 10], fov: 40 }}>
         <Scene/>
         <OrbitControls target={[0, 0, 0]} />
         <Stats />
