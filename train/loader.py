@@ -25,17 +25,14 @@ def load_exr(path: str, channels=("R", "G", "B")):
     sz = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
     FLOAT = Imath.PixelType(Imath.PixelType.FLOAT)
     chs = [array.array("f", file.channel(Chan, FLOAT)).tolist() for Chan in channels]
-    img = (
-        np.array(chs)
-        .reshape([len(channels), sz[1], sz[0]])
-        .transpose((2, 1, 0))
-    )
+    img = np.array(chs).reshape([len(channels), sz[1], sz[0]]).transpose((2, 1, 0))
     return img
 
+
 def collect():
-    path = Path('dataset_raw/render')
-    files = path.glob('**/*.exr').l
-    for file in tqdm(path.glob('**/*.exr')):
+    path = Path("dataset_raw/render")
+    files = path.glob("**/*.exr").l
+    for file in tqdm(path.glob("**/*.exr")):
         print(file.name)
 
 
@@ -44,8 +41,8 @@ def collect_dataset(img_num=64):
     v_valid = np.zeros((0, 3), dtype=np.float16)
     color_valid = np.zeros((0, 3), dtype=np.float16)
 
-    path = Path('dataset_raw/render')
-    files = [f for f in path.glob('**/*.exr')]
+    path = Path("dataset_raw/render")
+    files = [f for f in path.glob("**/*.exr")]
     i = 0
     for file in tqdm(files):
         print(f"load {file.name}")
@@ -70,28 +67,25 @@ def collect_dataset(img_num=64):
         valid_pixel = normal_length >= 0.1
 
         if i == 0:
-            pn0 = pnv_image[:,:, 3:9].astype(np.float16)
-        pn_valid = np.concatenate((pn_valid, pnv_image_concat[:, 3:9][valid_pixel]), axis=0)
+            pn0 = pnv_image[:, :, 3:9].astype(np.float16)
+        pn_valid = np.concatenate(
+            (pn_valid, pnv_image_concat[:, 3:9][valid_pixel]), axis=0
+        )
 
         if i == 0:
-            v0 = pnv_image[:,:, 0:3].astype(np.float16)
-        v_valid = np.concatenate((v_valid, pnv_image_concat[:, 0:3][valid_pixel]), axis=0)
+            v0 = pnv_image[:, :, 0:3].astype(np.float16)
+        v_valid = np.concatenate(
+            (v_valid, pnv_image_concat[:, 0:3][valid_pixel]), axis=0
+        )
 
-        render_img = load_exr(
-            str(file),
-            channels=(
-                'R', 'G', 'B'
-            ),
-        )[0:-1:2, 0:-1:2, :]
+        render_img = load_exr(str(file), channels=("R", "G", "B"),)[0:-1:2, 0:-1:2, :]
         if i == 0:
-            color0 = render_img[:,:, :].astype(np.float16)
+            color0 = render_img[:, :, :].astype(np.float16)
 
         render_img_concat = render_img.reshape([-1, 3])
         color_valid_image = render_img_concat[valid_pixel]
         print(color_valid_image.shape)
-        color_valid = np.concatenate(
-            (color_valid, color_valid_image), axis=0
-        )
+        color_valid = np.concatenate((color_valid, color_valid_image), axis=0)
 
         i = i + 1
 
@@ -105,7 +99,7 @@ def collect_dataset(img_num=64):
             "v_valid": v_valid,
             "color_valid": color_valid,
         },
-        protocol=4
+        protocol=4,
     )
 
 
@@ -149,32 +143,31 @@ def prepare_dataloader(path="dataset/render_2k.npy", batch_size=100):
 
 def preview_image():
     render_img = load_exr(
-            f"dataset_raw/render/Camera.exr",
-            channels=(
-                "R", "G", "B", "A"
-            ),
-        )
+        f"dataset_raw/render/Camera.exr", channels=("R", "G", "B", "A"),
+    )
     print(render_img.shape)
     print(render_img.dtype)
-    print(render_img[:,:,3])
+    print(render_img[:, :, 3])
     img = Image.fromarray((render_img * 255.0).astype(np.uint8))
-    img.save('preview.png')
+    img.save("preview.png")
+
 
 def preview_data():
-    dataset = np.load('dataset/render_x.npy', allow_pickle=True)
+    dataset = np.load("dataset/render_x.npy", allow_pickle=True)
     pn = dataset.item().get("pn0")
     v = dataset.item().get("v0")
     color = dataset.item().get("color0")
     pn01 = pn
     v01 = v
-    img = Image.fromarray((pn01[:,:,0:3] * 255.0).astype(np.uint8))
-    img.save('preview1.png')
-    img = Image.fromarray((pn01[:,:,3:6] * 255.0).astype(np.uint8))
-    img.save('preview2.png')
-    img = Image.fromarray((v01[:,:,0:3] * 255.0).astype(np.uint8))
-    img.save('preview3.png')
-    img = Image.fromarray((color[:,:,0:3] * 255.0).astype(np.uint8))
-    img.save('preview4.png')
+    img = Image.fromarray((pn01[:, :, 0:3] * 255.0).astype(np.uint8))
+    img.save("preview1.png")
+    img = Image.fromarray((pn01[:, :, 3:6] * 255.0).astype(np.uint8))
+    img.save("preview2.png")
+    img = Image.fromarray((v01[:, :, 0:3] * 255.0).astype(np.uint8))
+    img.save("preview3.png")
+    img = Image.fromarray((color[:, :, 0:3] * 255.0).astype(np.uint8))
+    img.save("preview4.png")
+
 
 if __name__ == "__main__":
     # collect()

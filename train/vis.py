@@ -29,12 +29,12 @@ def load_and_vis(
     img_pil = Image.fromarray((img * 255.0).astype(np.uint8))
     img_pil.save(f"model/{name}.png")
     if writer is not None:
-        writer.add_images('output', img, global_step=epoch, dataformats='HWC')
+        writer.add_images("output", img, global_step=epoch, dataformats="HWC")
 
 
 if __name__ == "__main__":
     model = SirenGINet(256, 5, 32, 64, 3)
-    model.load_state_dict(torch.load("model/model_siren_256x5x32x64x3_4500.pth")) 
+    model.load_state_dict(torch.load("model/model_siren_256x5x32x64x3_4500.pth"))
 
     device = torch.device("cuda:0")
     model = model.to(device)

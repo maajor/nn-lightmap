@@ -27,14 +27,17 @@ def train_epoch(epoch, model, optimizer, writer):
         pn = pn.to(device)
         v = v.to(device)
         optimizer.zero_grad()
-        pred_output  = model(pn, v)
+        pred_output = model(pn, v)
         color = color.to(device)
         loss = loss_fn(pred_output, color)
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
     train_loss = (
-        train_loss * 255 * 255 / (len(train_loader.dataset) * img_shape[0] * img_shape[1])
+        train_loss
+        * 255
+        * 255
+        / (len(train_loader.dataset) * img_shape[0] * img_shape[1])
     )
     writer.add_scalar("Loss/train", train_loss, epoch)
     print("====> Epoch: {} Average loss: {:.4f}".format(epoch, train_loss))
@@ -100,7 +103,7 @@ def train(model, save_name, writer):
 
 
 def test(model, saved_name):
-    model.load_state_dict(torch.load("model/" + saved_name + ".pth")) 
+    model.load_state_dict(torch.load("model/" + saved_name + ".pth"))
     model = model.to(device)
     model.eval()
     test_epoch(0, model)
@@ -108,10 +111,13 @@ def test(model, saved_name):
 
 def train_all(lm_dim=256, lm_layer=5, dim_hidden=32, rf_dim=64, rf_layer=2):
     model = SirenGINet(lm_dim, lm_layer, dim_hidden, rf_dim, rf_layer)
-    comment = f'{lm_dim}x{lm_layer}x{dim_hidden}x{rf_dim}x{rf_layer}'
+    comment = f"{lm_dim}x{lm_layer}x{dim_hidden}x{rf_dim}x{rf_layer}"
     from datetime import datetime
-    current_time = datetime.now().strftime('%b%d_%H-%M-%S')
-    writer = SummaryWriter(comment=comment, log_dir=f'/root/tf-logs/runs_{current_time}_{comment}')
+
+    current_time = datetime.now().strftime("%b%d_%H-%M-%S")
+    writer = SummaryWriter(
+        comment=comment, log_dir=f"/root/tf-logs/runs_{current_time}_{comment}"
+    )
     train(model, f"model_siren_{comment}", writer)
     writer.close()
 

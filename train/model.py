@@ -20,15 +20,15 @@ class SirenGINet(nn.Module):
         # l4
         self.lm_layers.append(Siren(dim_in=lm_dim, dim_out=dim_hidden))
         # view direction input up dim
-        self.vup_layers = Siren(dim_in=3, dim_out=dim_hidden, w0=60, is_first=True)  # v input
+        self.vup_layers = Siren(
+            dim_in=3, dim_out=dim_hidden, w0=60, is_first=True
+        )  # v input
         # rf layers
-        self.rf_layers.append(Siren(dim_in=dim_hidden*2, dim_out=rf_dim))
+        self.rf_layers.append(Siren(dim_in=dim_hidden * 2, dim_out=rf_dim))
         for _ in range(rf_layer):
             self.rf_layers.append(Siren(dim_in=rf_dim, dim_out=rf_dim))
         # l8
-        self.rf_layers.append(
-            Siren(dim_in=rf_dim, dim_out=3, activation=nn.Sigmoid())
-        )
+        self.rf_layers.append(Siren(dim_in=rf_dim, dim_out=3, activation=nn.Sigmoid()))
 
     def forward(self, pn, v):
         x = pn
