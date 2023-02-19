@@ -111,7 +111,7 @@ def prepare_dataloader(path="dataset/render_text_2k.npz", batch_size=100):
     color = dataset["color_valid"].clip(0,1)
 
     shape_l = pn.shape[0]
-    w, h = (256, 256)
+    w, h = (512, 512)
     reshape_nums = int(math.floor(shape_l / (w * h)))
     reshape_all_size = reshape_nums * w * h
 
