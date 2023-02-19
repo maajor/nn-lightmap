@@ -36,7 +36,7 @@ def collect():
         print(file.name)
 
 
-def collect_dataset(img_num=64):
+def collect_dataset():
     pn_valid = np.zeros((0, 6), dtype=np.float16)
     v_valid = np.zeros((0, 3), dtype=np.float16)
     color_valid = np.zeros((0, 3), dtype=np.float16)
@@ -47,12 +47,13 @@ def collect_dataset(img_num=64):
     for file in tqdm(files):
         print(f"load {file.name}")
 
-        pnv_image = load_exr(
-            f"dataset_raw/pnv/{file.name}",
+        rendernv_image = load_exr(
+            f"dataset_raw/render/{file.name}",
             channels=(
                 "View Layer.Combined.R",
                 "View Layer.Combined.G",
                 "View Layer.Combined.B",
+                "View Layer.Combined.A",
                 "View Layer.Position.X",
                 "View Layer.Position.Y",
                 "View Layer.Position.Z",
@@ -62,35 +63,35 @@ def collect_dataset(img_num=64):
             ),
         )
 
-        pnv_image_concat = pnv_image.reshape([-1, 9])
-        normal_length = np.linalg.norm(pnv_image_concat[:, 6:9], axis=1)
-        valid_pixel = normal_length >= 0.1
+        rendernv_image_concat = rendernv_image.reshape([-1, 10])
+        valid_pixel = rendernv_image_concat[:,3] >= 0.1
 
         if i == 0:
-            pn0 = pnv_image[:, :, 3:9].astype(np.float16)
+            pn0 = rendernv_image[:, :, 4:10].astype(np.float16)
         pn_valid = np.concatenate(
-            (pn_valid, pnv_image_concat[:, 3:9][valid_pixel]), axis=0
+            (pn_valid, rendernv_image_concat[:, 4:10][valid_pixel]), axis=0
         )
 
         if i == 0:
-            v0 = pnv_image[:, :, 0:3].astype(np.float16)
+            color0 = rendernv_image[:, :, 0:3].astype(np.float16)
+        color_valid = np.concatenate((color_valid, rendernv_image_concat[:, 0:3][valid_pixel]), axis=0)
+
+        view_img = load_exr(str(f"dataset_raw/view/{file.name}"), channels=("R", "G", "B"),)
+        if i == 0:
+            v0 = view_img[:, :, :].astype(np.float16)
+
+        view_img_concat = view_img.reshape([-1, 3])
+        view_valid_image = view_img_concat[valid_pixel]
+        print(view_valid_image.shape)
+
         v_valid = np.concatenate(
-            (v_valid, pnv_image_concat[:, 0:3][valid_pixel]), axis=0
+            (v_valid, view_valid_image), axis=0
         )
-
-        render_img = load_exr(str(file), channels=("R", "G", "B"),)
-        if i == 0:
-            color0 = render_img[:, :, :].astype(np.float16)
-
-        render_img_concat = render_img.reshape([-1, 3])
-        color_valid_image = render_img_concat[valid_pixel]
-        print(color_valid_image.shape)
-        color_valid = np.concatenate((color_valid, color_valid_image), axis=0)
 
         i = i + 1
 
     np.savez(
-        f"dataset/render_text_2k_uc",
+        f"dataset/render_text_2k",
         pn0=pn0,
         v0=v0,
         color0=color0,
@@ -153,7 +154,7 @@ def preview_data():
     dataset = np.load("dataset/render_text_2k.npz", allow_pickle=True)
     pn01 = dataset['pn0'] * 0.5 + 0.5
     v01 = dataset['v0'] * 0.5 + 0.5
-    color = np.power(dataset['color0'], 0.45)
+    color = dataset['color0']
     img = Image.fromarray((pn01[:, :, 0:3] * 255.0).astype(np.uint8))
     img.save("preview1.png")
     img = Image.fromarray((pn01[:, :, 3:6] * 255.0).astype(np.uint8))
@@ -166,6 +167,6 @@ def preview_data():
 
 if __name__ == "__main__":
     # collect()
-    collect_dataset()
+    # collect_dataset()
     # preview_image()
-    # preview_data()
+    preview_data()

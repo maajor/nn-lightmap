@@ -15,6 +15,7 @@ export const Scene = () => {
             }
         });
     return (
+        // @ts-ignore
         <mesh geometry={gltf.nodes.Object001.geometry}>
             <nnLightmapMaterial lm0={t0} lm1={t1} lm2={t2} lm3={t3} lm4={t4} lm5={t5} lm6={t6} lm7={t7} />
         </mesh>
