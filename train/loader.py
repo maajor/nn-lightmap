@@ -93,8 +93,8 @@ def collect_dataset():
 
         i = i + 1
 
-    np.savez(
-        f"dataset/render_text_2k",
+    np.savez_compressed(
+        f"dataset/render_text_4k",
         pn0=pn0,
         v0=v0,
         color0=color0,
@@ -104,7 +104,7 @@ def collect_dataset():
     )
 
 
-def prepare_dataloader(path="dataset/render_text_2k.npz", batch_size=100):
+def prepare_dataloader(path="dataset/render_text_4k.npz", batch_size=100):
     dataset = np.load(path, allow_pickle=True)
     pn = dataset["pn_valid"]
     v = dataset["v_valid"]
@@ -162,7 +162,7 @@ def preview_image():
 
 
 def preview_data():
-    dataset = np.load("dataset/render_text_2k.npz", allow_pickle=True)
+    dataset = np.load("dataset/render_text_4k.npz", allow_pickle=True)
     pn01 = dataset['pn0'] * 0.5 + 0.5
     v01 = dataset['v0'] * 0.5 + 0.5
     color = dataset['color0']
