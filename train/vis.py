@@ -16,11 +16,11 @@ def load_and_vis(
     n = dataset["pn0"][0:-1:2, 0:-1:2, 3:6]
     v = dataset["v0"][0:-1:2, 0:-1:2, :]
     uv = dataset["uv0"][0:-1:2, 0:-1:2, :]
-    input_n = torch.from_numpy(n).float()
+    input_n = torch.from_numpy(n).float().unsqueeze(0)
     input_n = input_n.to(device)
-    input_v = torch.from_numpy(v).float()
+    input_v = torch.from_numpy(v).float().unsqueeze(0)
     input_v = input_v.to(device)
-    input_uv = torch.from_numpy(uv).float()
+    input_uv = torch.from_numpy(uv).float().unsqueeze(0)
     input_uv = input_uv.to(device)
     model.eval()
     with torch.no_grad():
