@@ -15,7 +15,7 @@ device = torch.device("cuda:0")
 BATCH_SIZE = 2
 TRAIN_EPOCHS = 300
 
-train_loader, test_loader, img_shape = prepare_dataloader(batch_size=BATCH_SIZE)
+train_loader, test_loader, img_shape = prepare_dataloader(batch_size=BATCH_SIZE, path='dataset/render_text_4k.npz')
 
 loss_fn = torch.nn.MSELoss(reduction="sum")
 
@@ -23,11 +23,12 @@ loss_fn = torch.nn.MSELoss(reduction="sum")
 def train_epoch(epoch, model, optimizer, writer):
     model.train()
     train_loss = 0
-    for id, (pn, v, color) in enumerate(train_loader):
-        pn = pn.to(device)
+    for id, (n, v, uv, color) in enumerate(train_loader):
+        n = n.to(device)
         v = v.to(device)
+        uv = uv.to(device)
         optimizer.zero_grad()
-        pred_output = model(pn, v)
+        pred_output = model(uv, n, v)
         color = color.to(device)
         loss = loss_fn(pred_output, color)
         loss.backward()
@@ -37,7 +38,7 @@ def train_epoch(epoch, model, optimizer, writer):
         train_loss
         * 255
         * 255
-        / (len(train_loader.dataset) * img_shape[0] * img_shape[1])
+        / (len(train_loader.dataset) * img_shape[0] * img_shape[1] * img_shape[2])
     )
     writer.add_scalar("Loss/train", train_loss, epoch)
     print("====> Epoch: {} Average loss: {:.4f}".format(epoch, train_loss))
@@ -48,15 +49,16 @@ def test_epoch(epoch, model):
     model.eval()
     test_loss = 0
     with torch.no_grad():
-        for id, (pn, v, color) in enumerate(test_loader):
-            pn = pn.to(device)
+        for id, (n, v, uv, color) in enumerate(test_loader):
+            n = n.to(device)
             v = v.to(device)
-            pred_output = model(pn, v)
+            uv = uv.to(device)
+            pred_output = model(uv, n, v)
             output = color.to(device)
             test_loss += loss_fn(pred_output, output).item()
 
     test_loss = (
-        test_loss * 255 * 255 / (len(test_loader.dataset) * img_shape[0] * img_shape[1])
+        test_loss * 255 * 255 / (len(test_loader.dataset) * img_shape[0] * img_shape[1] * img_shape[2])
     )
     print("====> Epoch: {} Test set loss: {:.4f}".format(epoch, test_loss))
     return test_loss
@@ -123,4 +125,4 @@ def train_all(lm_dim=256, lm_layer=5, dim_hidden=32, rf_dim=64, rf_layer=2):
 
 
 if __name__ == "__main__":
-    train_all(256, 5, 16, 32, 3)
+    train_all(64, 2, 16, 32, 2)

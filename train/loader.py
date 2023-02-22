@@ -40,6 +40,7 @@ def collect_dataset():
     pn_valid = np.zeros((0, 6), dtype=np.float16)
     v_valid = np.zeros((0, 3), dtype=np.float16)
     color_valid = np.zeros((0, 3), dtype=np.float16)
+    uv_valid = np.zeros((0, 2), dtype=np.float16)
 
     path = Path("dataset_raw/render")
     files = [f for f in path.glob("**/*.png")]
@@ -91,6 +92,19 @@ def collect_dataset():
             (v_valid, view_valid_image), axis=0
         )
 
+        uv_img = load_exr(str(f"dataset_raw/uv/{file.stem}.exr"), channels=("View Layer.UV.U", "View Layer.UV.V"))
+        uv_img = np.swapaxes(uv_img,0,1)
+        if i == 0:
+            uv0 = uv_img.astype(np.float16)
+
+        uv_img_concat = uv_img.reshape([-1, 2])
+        uv_valid_image = uv_img_concat[valid_pixel]
+
+        uv_valid = np.concatenate(
+            (uv_valid, uv_valid_image), axis=0
+        )
+
+
         i = i + 1
 
     np.savez_compressed(
@@ -98,37 +112,43 @@ def collect_dataset():
         pn0=pn0,
         v0=v0,
         color0=color0,
+        uv0=uv0,
         pn_valid=pn_valid,
         v_valid=v_valid,
-        color_valid=color_valid
+        color_valid=color_valid,
+        uv_valid=uv_valid,
     )
 
 
 def prepare_dataloader(path="dataset/render_text_4k.npz", batch_size=100):
     dataset = np.load(path, allow_pickle=True)
     pn = dataset["pn_valid"]
+    uv = dataset["uv_valid"]
     v = dataset["v_valid"]
-    color = dataset["color_valid"].clip(0,1)
+    color = dataset["color_valid"]
 
     shape_l = pn.shape[0]
     w, h = (512, 512)
     reshape_nums = int(math.floor(shape_l / (w * h)))
     reshape_all_size = reshape_nums * w * h
 
-    train_inputs_pn = pn[0:reshape_all_size, :].reshape(-1, w, h, 6)
+    train_inputs_n = pn[0:reshape_all_size, 3:6].reshape(-1, w, h, 3)
     train_inputs_v = v[0:reshape_all_size, :].reshape(-1, w, h, 3)
-    test_inputs_pn = train_inputs_pn[0 : train_inputs_pn.shape[0] : 8, :, :, :]
-    test_inputs_v = train_inputs_v[0 : train_inputs_v.shape[0] : 8, :, :, :]
+    train_inputs_uv = uv[0:reshape_all_size, :].reshape(-1, w, h, 2)
+    test_inputs_n = train_inputs_n[0 : train_inputs_n.shape[0] : 8, :, :]
+    test_inputs_v = train_inputs_v[0 : train_inputs_v.shape[0] : 8, :, :]
+    test_inputs_uv = train_inputs_uv[0 : train_inputs_uv.shape[0] : 8, :, :]
 
     train_output_color = color[0:reshape_all_size, :].reshape(-1, w, h, 3)
-    test_output_color = train_output_color[0 : train_output_color.shape[0] : 8, :, :, :] 
+    test_output_color = train_output_color[0 : train_output_color.shape[0] : 8, :, :] 
 
-    def loader(pn, v, color, batch_size):
-        pn = torch.from_numpy(pn).float()
+    def loader(n, v, uv, color, batch_size):
+        n = torch.from_numpy(n).float()
         v = torch.from_numpy(v).float()
         color = torch.from_numpy(color).float()
+        uv = torch.from_numpy(uv).float()
 
-        data_set = Data.TensorDataset(pn, v, color)
+        data_set = Data.TensorDataset(n, v, uv, color)
 
         loader = Data.DataLoader(
             dataset=data_set, batch_size=batch_size, shuffle=True, num_workers=1,
@@ -136,9 +156,9 @@ def prepare_dataloader(path="dataset/render_text_4k.npz", batch_size=100):
         return loader
 
     return (
-        loader(train_inputs_pn, train_inputs_v, train_output_color, batch_size),
-        loader(test_inputs_pn, test_inputs_v, test_output_color, batch_size),
-        (w, h),
+        loader(train_inputs_n, train_inputs_v, train_inputs_uv, train_output_color, batch_size),
+        loader(test_inputs_n, test_inputs_v, test_inputs_uv, test_output_color, batch_size),
+        (w, h, 3),
     )
 
 
@@ -180,6 +200,6 @@ def preview_data():
 
 if __name__ == "__main__":
     # collect()
-    # collect_dataset()
+    collect_dataset()
     # preview_image()
-    preview_data()
+    # preview_data()
