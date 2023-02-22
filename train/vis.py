@@ -13,16 +13,19 @@ def load_and_vis(
 
     dataset = np.load(dataset_path, allow_pickle=True)
 
-    pn = dataset["pn0"][0:-1:2, 0:-1:2, :]
+    n = dataset["pn0"][0:-1:2, 0:-1:2, 3:6]
     v = dataset["v0"][0:-1:2, 0:-1:2, :]
-    input_pn = torch.from_numpy(pn).float()
-    input_pn = input_pn.to(device)
+    uv = dataset["uv0"][0:-1:2, 0:-1:2, :]
+    input_n = torch.from_numpy(n).float()
+    input_n = input_n.to(device)
     input_v = torch.from_numpy(v).float()
     input_v = input_v.to(device)
+    input_uv = torch.from_numpy(uv).float()
+    input_uv = input_uv.to(device)
     model.eval()
     with torch.no_grad():
         tim = time.time()
-        pred_output = model(input_pn, input_v)
+        pred_output = model(input_uv, input_n, input_v)
         diff = time.time() - tim
         print(diff * 1000)
     img = pred_output.cpu().detach().numpy()
