@@ -28,7 +28,7 @@ def load_and_vis(
         pred_output = model(input_uv, input_n, input_v)
         diff = time.time() - tim
         print(diff * 1000)
-    img = pred_output.cpu().detach().numpy()
+    img = pred_output.cpu().detach().numpy()[0,:,:,:]
 
     # img_pil = Image.fromarray((img * 255.0).astype(np.uint8))
     # img_pil.save(f"model/{name}.png")
