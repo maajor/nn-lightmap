@@ -112,9 +112,10 @@ class SirenGINet(nn.Module):
         self.sh_encoder = SHEncoder(degree=4)
         self.sh_dim = 16 # degree 4 sh
 
-        self.n_level = 16
+        self.n_level = 4
         feature_per_level = 2
-        self.embeddings = nn.ModuleList([nn.Embedding(2**19, 2) for i in range(self.n_level)])
+        self.hash_size = 16
+        self.embeddings = nn.ModuleList([nn.Embedding(2**self.hash_size, 2) for i in range(self.n_level)])
 
         self.lm_layers.append(Siren(dim_in=self.n_level * feature_per_level + self.sh_dim, dim_out=lm_dim, w0=20, is_first=True))
 
@@ -145,11 +146,11 @@ class SirenGINet(nn.Module):
         for i in range(len(uv.shape)-1):
             box_offsets = box_offsets.unsqueeze(0)
         for i in range(self.n_level):
-            resolution = 2 ** (i + 3)
+            resolution = 2 ** (i + 9)
             scaled_uv = uv * resolution
             bottom_left_idx = torch.floor(scaled_uv).int()
             corner_indices = bottom_left_idx.unsqueeze(-2) + box_offsets
-            hashed_texel_indices = hash(corner_indices, 19)
+            hashed_texel_indices = hash(corner_indices, self.hash_size)
             weights = scaled_uv - torch.floor(scaled_uv)
             texel_embedds = self.embeddings[i](hashed_texel_indices)
             embed = texel_embedds[:,:,:,0]*(1-weights[:,:,:,0][:,:,:,None])*(1-weights[:,:,:,1][:,:,:,None]) + \
