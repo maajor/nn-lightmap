@@ -37,7 +37,7 @@ def train_epoch(epoch, model, optimizer, writer):
         train_loss
         * 255
         * 255
-        / (len(train_loader.dataset) * img_shape[0] * img_shape[1])
+        / (len(train_loader.dataset) * img_shape[0] * img_shape[1] * img_shape[2])
     )
     writer.add_scalar("Loss/train", train_loss, epoch)
     print("====> Epoch: {} Average loss: {:.4f}".format(epoch, train_loss))
@@ -56,7 +56,7 @@ def test_epoch(epoch, model):
             test_loss += loss_fn(pred_output, output).item()
 
     test_loss = (
-        test_loss * 255 * 255 / (len(test_loader.dataset) * img_shape[0] * img_shape[1])
+        test_loss * 255 * 255 / (len(test_loader.dataset) * img_shape[0] * img_shape[1] * img_shape[2])
     )
     print("====> Epoch: {} Test set loss: {:.4f}".format(epoch, test_loss))
     return test_loss
@@ -123,4 +123,4 @@ def train_all(lm_dim=256, lm_layer=5, dim_hidden=32, rf_dim=64, rf_layer=2):
 
 
 if __name__ == "__main__":
-    train_all(256, 5, 16, 32, 3)
+    train_all(256, 5, 32, 64, 2)
