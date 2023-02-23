@@ -186,6 +186,7 @@ def preview_data():
     pn01 = dataset['pn0'] * 0.5 + 0.5
     v01 = dataset['v0'] * 0.5 + 0.5
     color = dataset['color0']
+    uv = dataset['uv0']
     print(np.max(dataset['color0']))
     print(np.max(dataset['color_valid']))
     img = Image.fromarray((pn01[:, :, 0:3] * 255.0).astype(np.uint8))
@@ -196,10 +197,12 @@ def preview_data():
     img.save("preview3.png")
     img = Image.fromarray((color[:, :, 0:3] * 255.0).astype(np.uint8))
     img.save("preview4.png")
+    img = Image.fromarray((uv[:, :, 0:2] * 255.0).astype(np.uint8))
+    img.save("preview5.png")
 
 
 if __name__ == "__main__":
     # collect()
-    collect_dataset()
+    # collect_dataset()
     # preview_image()
-    # preview_data()
+    preview_data()
