@@ -20,6 +20,9 @@ def hash(coords, log2_hashmap_size):
 
     return torch.tensor((1<<log2_hashmap_size)-1).to(xor_result.device) & xor_result
 
+def get_grid_indices(coords, resolution):
+    return coords[...,0] * resolution + coords[...,1]
+
 class SHEncoder(nn.Module):
     def __init__(self, input_dim=3, degree=4):
     
@@ -112,12 +115,7 @@ class SirenGINet(nn.Module):
         self.sh_encoder = SHEncoder(degree=4)
         self.sh_dim = 16 # degree 4 sh
 
-        self.n_level = 4
-        feature_per_level = 2
-        self.hash_size = 16
-        self.embeddings = nn.ModuleList([nn.Embedding(2**self.hash_size, 2) for i in range(self.n_level)])
-
-        self.lm_layers.append(Siren(dim_in=self.n_level * feature_per_level + self.sh_dim, dim_out=lm_dim, w0=20, is_first=True))
+        self.lm_layers.append(Siren(dim_in=3 + self.sh_dim, dim_out=lm_dim, w0=20, is_first=True))
 
         for _ in range(lm_layer):
             self.lm_layers.append(Siren(dim_in=lm_dim, dim_out=lm_dim))
@@ -131,7 +129,7 @@ class SirenGINet(nn.Module):
 
         self.rf_layers.append(Siren(dim_in=rf_dim, dim_out=3, activation=nn.Sigmoid()))
 
-    def forward(self, uv, n, v):
+    def forward(self, p, n, v):
         '''
         input: 
           uv: B x W x H x 2, 
@@ -139,27 +137,8 @@ class SirenGINet(nn.Module):
           v: B x W x H x 3
         '''
         n_in_sh = self.sh_encoder(n)
-
-        # encode input uv to embedding and concat for inputs
-        x_embedded_all = [n_in_sh]
-        box_offsets = BOX_OFFSETS
-        for i in range(len(uv.shape)-1):
-            box_offsets = box_offsets.unsqueeze(0)
-        for i in range(self.n_level):
-            resolution = 2 ** (i + 9)
-            scaled_uv = uv * resolution
-            bottom_left_idx = torch.floor(scaled_uv).int()
-            corner_indices = bottom_left_idx.unsqueeze(-2) + box_offsets
-            hashed_texel_indices = hash(corner_indices, self.hash_size)
-            weights = scaled_uv - torch.floor(scaled_uv)
-            texel_embedds = self.embeddings[i](hashed_texel_indices)
-            embed = texel_embedds[:,:,:,0]*(1-weights[:,:,:,0][:,:,:,None])*(1-weights[:,:,:,1][:,:,:,None]) + \
-                    texel_embedds[:,:,:,1]*(1-weights[:,:,:,0][:,:,:,None])*weights[:,:,:,1][:,:,:,None] + \
-                    texel_embedds[:,:,:,2]*weights[:,:,:,0][:,:,:,None]*(1-weights[:,:,:,1][:,:,:,None]) + \
-                    texel_embedds[:,:,:,3]*weights[:,:,:,0][:,:,:,None]*weights[:,:,:,1][:,:,:,None]
-            x_embedded_all.append(embed)
             
-        x = torch.cat(x_embedded_all, dim=-1)
+        x = torch.cat([p, n_in_sh], dim=-1)
 
         # lightmap phase
         for layer in self.lm_layers:
