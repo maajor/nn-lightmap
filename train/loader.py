@@ -138,7 +138,7 @@ def prepare_dataloader(path="dataset/render_text_4k.npz", batch_size=100):
     return (
         loader(train_inputs_pn, train_inputs_v, train_output_color, batch_size),
         loader(test_inputs_pn, test_inputs_v, test_output_color, batch_size),
-        (w, h),
+        (w, h, 3),
     )
 
 
