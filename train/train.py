@@ -123,4 +123,4 @@ def train_all(lm_dim=256, lm_layer=5, dim_hidden=32, rf_dim=64, rf_layer=2):
 
 
 if __name__ == "__main__":
-    train_all(256, 5, 32, 64, 2)
+    train_all(256, 5, 16, 64, 2)
