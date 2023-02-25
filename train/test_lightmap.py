@@ -7,8 +7,8 @@ import array
 from PIL import Image
 from model import SirenGINet
 
-model = SirenGINet(256, 5, 32, 32, 3)
-model.load_state_dict(torch.load("model/model_siren_256x5x32x32x3_2400.pth"))
+model = SirenGINet(256, 5, 16, 64, 2)
+model.load_state_dict(torch.load("model/model_siren_256x5x16x64x2.pth"))
 
 
 def load_exr(path: str, channels=("R", "G", "B")):
@@ -54,6 +54,8 @@ def bilinear_sample_texture(u0, v0, u1, v1, ru, rv, texture):
 def get_lightmap_pn():
     position = load_exr("lightmap/position.exr") * 2.0 - 1.0
     normal = load_exr("lightmap/normal.exr") * 2.0 - 1.0
+    position = np.swapaxes(position, 0, 1)
+    normal = np.swapaxes(normal, 0, 1)
     return np.concatenate((position, normal), -1)
 
 
@@ -61,6 +63,8 @@ def get_lightmap_pn_view():
     uv = get_uv()
     position = load_exr("lightmap/position.exr") * 2.0 - 1.0
     normal = load_exr("lightmap/normal.exr") * 2.0 - 1.0
+    position = np.swapaxes(position, 0, 1)
+    normal = np.swapaxes(normal, 0, 1)
     lmw, lmh, _ = position.shape
     w, h, c = uv.shape
     npview = np.zeros((w, h, 6))
@@ -122,7 +126,7 @@ def get_lightmap_from_view():
     model.eval()
     with torch.no_grad():
         pn = torch.from_numpy(pn).float()
-        lm = model.bake_lightmap(pn)
+        lm = model.bake_lightmap(pn[...,0:3], pn[...,3:6])
         lm = lm.numpy()
     return lm
 
@@ -133,7 +137,7 @@ def get_lightmap_from_uv():
     model.eval()
     with torch.no_grad():
         pn = torch.from_numpy(pn).float()
-        lm = model.bake_lightmap(pn)
+        lm = model.bake_lightmap(pn[...,0:3], pn[...,3:6])
         lm = lm.numpy()
     return lm
 

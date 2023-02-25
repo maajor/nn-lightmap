@@ -105,6 +105,17 @@ class SHEncoder(nn.Module):
                         result[..., 24] = self.C4[8] * (xx * (xx - 3 * yy) - yy * (3 * xx - yy))
 
         return result
+    
+    def dump_code(self, base=4):
+        lines = []
+        lines.append(f'vec4 f0{0+base} = vec4({"{0:.3f}".format(self.C0)},-{"{0:.3f}".format(self.C1)}*dir.y,{"{0:.3f}".format(self.C1)}*dir.z,-{"{0:.3f}".format(self.C1)}*dir.x);')
+        lines.append(f'vec3 xxyyzz=dir*dir;')
+        lines.append(f'vec3 xyyzxz=dir.xyx*dir.yzz;')
+        lines.append(f'vec4 f0{1+base}=vec4({"{0:.3f}".format(self.C2[0])}*xyyzxz.x,{"{0:.3f}".format(self.C2[1])}*xyyzxz.y,{self.C2[2]}*(2.f*xxyyzz.z-xxyyzz.x-xxyyzz.y),{"{0:.3f}".format(self.C2[3])}*xyyzxz.z);')
+        lines.append(f'vec4 f0{2+base}=vec4({"{0:.3f}".format(self.C2[4])}*(xxyyzz.x-xxyyzz.y),{"{0:.3f}".format(self.C3[0])}*dir.y*(3.f*xxyyzz.x-xxyyzz.y),{"{0:.3f}".format(self.C3[1])}*xyyzxz.x*dir.z,{"{0:.3f}".format(self.C3[2])}*dir.y*(4.f*xxyyzz.z-xxyyzz.x-xxyyzz.y));')
+        lines.append(f'vec4 f0{3+base}=vec4({"{0:.3f}".format(self.C3[3])}*dir.z*(2.f*xxyyzz.z-3.f*xxyyzz.x-3.f*xxyyzz.y), {"{0:.3f}".format(self.C3[4])}*dir.x*(4.f*xxyyzz.z-xxyyzz.x-xxyyzz.y), {"{0:.3f}".format(self.C3[5])}*dir.z*(xxyyzz.x-xxyyzz.y), {"{0:.3f}".format(self.C3[6])}*dir.x*(xxyyzz.x-3.f*xxyyzz.y));')
+        return lines
+
 
 class SirenGINet(nn.Module):
     def __init__(self, lm_dim=64, lm_layer=2, dim_hidden=16, rf_dim=32, rf_layer=2):
@@ -114,7 +125,8 @@ class SirenGINet(nn.Module):
         self.rf_layers = nn.ModuleList([])
         self.sh_encoder = SHEncoder(degree=4)
         self.sh_dim = 16 # degree 4 sh
-        self.cs_level = 12
+        self.cs_level = 8
+        self.dim_lightmap = dim_hidden
 
         self.lm_layers.append(Siren(dim_in=self.cs_level*6 + self.sh_dim, dim_out=lm_dim, w0=20, is_first=True))
 
@@ -162,8 +174,18 @@ class SirenGINet(nn.Module):
 
         return x
 
-    def bake_lightmap(self, pn):
-        x = pn
+    def bake_lightmap(self, p, n):
+        n_in_sh = self.sh_encoder(n)
+
+        cs_enc = [n_in_sh]
+        for i in range(self.cs_level):
+            s = torch.sin(2**i * p)
+            c = torch.cos(2**i * p)
+            cs_enc.append(s)
+            cs_enc.append(c)
+            
+        x = torch.cat(cs_enc, dim=-1)
+
         # lightmap phase
         for layer in self.lm_layers:
             x = layer(x)
@@ -171,8 +193,8 @@ class SirenGINet(nn.Module):
         return x
 
     def inference_with_lightmap(self, lightmap, v):
-        vup = self.vup_layers(v)
-        x = torch.cat((lightmap, vup), -1)
+        v_in_sh = self.sh_encoder(v)
+        x = torch.cat((lightmap, v_in_sh), -1)
 
         # refinement phase
         for layer in self.rf_layers:
@@ -181,44 +203,31 @@ class SirenGINet(nn.Module):
         return x
 
     def debug_shader(self, lm, v):
-        vup = self.vup_layers(v)
-        x = torch.cat((lm, vup), -1)
+        v_in_sh = self.sh_encoder(v)
+        x = torch.cat((lm, v_in_sh), -1)
         x = self.rf_layers[0](x)
         return x
 
     def dump_shader(self):
 
         def vec4(n):
-            return 'vec4(' + ','.join(['{0:.3f}'.format(i) for i in n.flatten()]) + ')'
+            return 'vec4(' + ','.join(["{0:.3f}".format(i) for i in n.flatten()]) + ')'
 
         def mat4(n, transpose=False):
             if transpose: n = np.transpose(n)
-            return 'mat4(' + ','.join(['{0:.3f}'.format(i) for i in n.flatten()]) + ')'
+            return 'mat4(' + ','.join(["{0:.3f}".format(i) for i in n.flatten()]) + ')'
 
         def vname(layer, chunk):
             return "f%d%d" % (layer, chunk)
 
-        output_dim, input_dim = self.vup_layers.weight.shape
+        '''output_dim, input_dim = self.vup_layers.weight.shape
         w0 = self.vup_layers.activation.w0
 
         weights = self.vup_layers.weight.detach().numpy()
-        bias = self.vup_layers.bias.detach().numpy()
+        bias = self.vup_layers.bias.detach().numpy()'''
 
-        vec4_defs = ["vec4 x=vec4(view_dir,1);"]
-        for chunk in range(output_dim // 4):
-            mat = np.concatenate([
-                w0*weights[chunk*4],[0],
-                w0*weights[chunk*4+1],[0],
-                w0*weights[chunk*4+2],[0],
-                w0*weights[chunk*4+3],[0],
-            ]).reshape(4,4)
-            vec4_defs.append(
-                'vec4 {}=sin(x*{}+{});'.format(
-                    vname(0,chunk+output_dim/4), # lightmap has output_dim channels
-                    mat4(mat, transpose=False),
-                    vec4(w0*bias[chunk*4:chunk*4+4])
-                )
-            )
+        vec4_defs = []
+        vec4_defs.extend(self.sh_encoder.dump_code(self.dim_lightmap // 4))
 
         layers = len(self.rf_layers)
         for layer in range(layers-1):
@@ -269,6 +278,7 @@ class SirenGINet(nn.Module):
                 vec4(np.concatenate([bias, [0]]))
             )
         vec4_defs.append('vec4 outc={};'.format('+'.join(elements)))
+        vec4_defs.append('vec3 color = vec3(1.0) / ( vec3(1.0) + pow(vec3(2.71828), -outc.xyz));//sigmoid')
 
         out = '\n'.join(vec4_defs) + "\n"
 
