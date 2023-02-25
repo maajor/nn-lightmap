@@ -114,8 +114,9 @@ class SirenGINet(nn.Module):
         self.rf_layers = nn.ModuleList([])
         self.sh_encoder = SHEncoder(degree=4)
         self.sh_dim = 16 # degree 4 sh
+        self.cs_level = 8
 
-        self.lm_layers.append(Siren(dim_in=3 + self.sh_dim, dim_out=lm_dim, w0=20, is_first=True))
+        self.lm_layers.append(Siren(dim_in=self.cs_level*6 + self.sh_dim, dim_out=lm_dim, w0=20, is_first=True))
 
         for _ in range(lm_layer):
             self.lm_layers.append(Siren(dim_in=lm_dim, dim_out=lm_dim))
@@ -137,8 +138,15 @@ class SirenGINet(nn.Module):
           v: B x W x H x 3
         '''
         n_in_sh = self.sh_encoder(n)
+
+        cs_enc = [n_in_sh]
+        for i in range(self.cs_level):
+            s = torch.sin(2**i * p)
+            c = torch.cos(2**i * p)
+            cs_enc.append(s)
+            cs_enc.append(c)
             
-        x = torch.cat([p, n_in_sh], dim=-1)
+        x = torch.cat(cs_enc, dim=-1)
 
         # lightmap phase
         for layer in self.lm_layers:
