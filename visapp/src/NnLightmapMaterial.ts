@@ -7,10 +7,6 @@ export const NnLightmapMaterial = shaderMaterial(
     lm1: null,
     lm2: null,
     lm3: null,
-    lm4: null,
-    lm5: null,
-    lm6: null,
-    lm7: null,
 },
   // vertex shader
   /* glsl */ `
@@ -28,10 +24,6 @@ export const NnLightmapMaterial = shaderMaterial(
     uniform sampler2D lm1;
     uniform sampler2D lm2;
     uniform sampler2D lm3;
-    uniform sampler2D lm4;
-    uniform sampler2D lm5;
-    uniform sampler2D lm6;
-    uniform sampler2D lm7;
     varying vec3 vWorldPosition;
     varying vec2 vUv;
     void main() {
