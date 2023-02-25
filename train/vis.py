@@ -7,7 +7,7 @@ from PIL import Image
 
 
 def load_and_vis(
-    model, name, epoch=None, writer=None, dataset_path="dataset/render_text_4k.npz"
+    model, name, epoch=None, writer=None, dataset_path="dataset/render_text_512.npz"
 ):
     device = torch.device("cuda:0")
 
@@ -16,7 +16,6 @@ def load_and_vis(
     p = dataset["pn0"][0:-1:2, 0:-1:2, 0:3]
     n = dataset["pn0"][0:-1:2, 0:-1:2, 3:6]
     v = dataset["v0"][0:-1:2, 0:-1:2, :]
-    uv = dataset["uv0"][0:-1:2, 0:-1:2, :]
     input_n = torch.from_numpy(n).float()
     input_n = input_n.to(device)
     input_v = torch.from_numpy(v).float()
