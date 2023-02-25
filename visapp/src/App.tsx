@@ -1,5 +1,5 @@
 import { extend } from '@react-three/fiber';
-import { Stats, OrbitControls, GizmoHelper, GizmoViewport } from '@react-three/drei'
+import { Stats, OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { NnLightmapMaterial } from './NnLightmapMaterial';
 import {Scene} from './Scene';

@@ -28,8 +28,10 @@ def setup_for_pn():
         scene.display_settings.display_device = 'None'
         scene.view_settings.view_transform = 'Standard'
         scene.sequencer_colorspace_settings.name = 'Raw'
-        scene.view_layers["View Layer"].use_pass_position = True
-        scene.view_layers["View Layer"].use_pass_normal = True
+        for layer in scene.view_layers:
+            layer.use_pass_combined = False
+            layer.use_pass_position = True
+            layer.use_pass_normal = True
 
 
 def render_all_cam_views(render_dir):
@@ -64,5 +66,5 @@ setup_for_basecolor()
 res = render_all_cam_views(bpy.path.abspath('//render/render'))
 setup_for_pn()
 res = render_all_cam_views(bpy.path.abspath('//render/pn'))
-dump_camera_position('//render')
+dump_camera_position(bpy.path.abspath('//render/'))
 print(res)

@@ -67,6 +67,7 @@ def get_lightmap_pn():
     normal = load_exr("lightmap/text/normal.exr") * 2.0 - 1.0
     position = np.swapaxes(position,0,1)
     normal = np.swapaxes(normal,0,1)
+    print(f'position max {np.max(position)}, min {np.min(position)}')
     return np.concatenate((position, normal), -1)
 
 
