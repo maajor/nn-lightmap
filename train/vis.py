@@ -7,25 +7,28 @@ from PIL import Image
 
 
 def load_and_vis(
-    model, name, epoch=None, writer=None, dataset_path="dataset/render_text_4k.npz"
+    model, name, epoch=None, writer=None, dataset_path="dataset/render_text_512.npz"
 ):
     device = torch.device("cuda:0")
 
     dataset = np.load(dataset_path, allow_pickle=True)
 
-    pn = dataset["pn0"][0:-1:2, 0:-1:2, :]
+    p = dataset["pn0"][0:-1:2, 0:-1:2, 0:3]
+    n = dataset["pn0"][0:-1:2, 0:-1:2, 3:6]
     v = dataset["v0"][0:-1:2, 0:-1:2, :]
-    input_pn = torch.from_numpy(pn).float()
-    input_pn = input_pn.to(device)
+    input_n = torch.from_numpy(n).float()
+    input_n = input_n.to(device)
     input_v = torch.from_numpy(v).float()
     input_v = input_v.to(device)
+    input_p = torch.from_numpy(p).float()
+    input_p = input_p.to(device)
     model.eval()
     with torch.no_grad():
         tim = time.time()
-        pred_output = model(input_pn, input_v)
+        pred_output = model(input_p, input_n, input_v)
         diff = time.time() - tim
         print(diff * 1000)
-    img = pred_output.cpu().detach().numpy()
+    img = pred_output.cpu().detach().numpy()[:,:,:]
 
     # img_pil = Image.fromarray((img * 255.0).astype(np.uint8))
     # img_pil.save(f"model/{name}.png")

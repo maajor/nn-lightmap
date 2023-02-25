@@ -132,27 +132,30 @@ def prepare_dataloader(path="dataset/render_text_512.npz", batch_size=100):
     dataset = np.load(path, allow_pickle=True)
     pn = dataset["pn_valid"]
     v = dataset["v_valid"]
-    color = dataset["color_valid"].clip(0,1)
+    color = dataset["color_valid"]
 
     shape_l = pn.shape[0]
     w, h = (512, 512)
     reshape_nums = int(math.floor(shape_l / (w * h)))
     reshape_all_size = reshape_nums * w * h
 
-    train_inputs_pn = pn[0:reshape_all_size, :].reshape(-1, w, h, 6)
+    train_inputs_p = pn[0:reshape_all_size, 0:3].reshape(-1, w, h, 3)
+    train_inputs_n = pn[0:reshape_all_size, 3:6].reshape(-1, w, h, 3)
     train_inputs_v = v[0:reshape_all_size, :].reshape(-1, w, h, 3)
-    test_inputs_pn = train_inputs_pn[0 : train_inputs_pn.shape[0] : 8, :, :, :]
-    test_inputs_v = train_inputs_v[0 : train_inputs_v.shape[0] : 8, :, :, :]
+    test_inputs_p = train_inputs_p[0 : train_inputs_p.shape[0] : 8, :, :]
+    test_inputs_n = train_inputs_n[0 : train_inputs_n.shape[0] : 8, :, :]
+    test_inputs_v = train_inputs_v[0 : train_inputs_v.shape[0] : 8, :, :]
 
     train_output_color = color[0:reshape_all_size, :].reshape(-1, w, h, 3)
-    test_output_color = train_output_color[0 : train_output_color.shape[0] : 8, :, :, :] 
+    test_output_color = train_output_color[0 : train_output_color.shape[0] : 8, :, :] 
 
-    def loader(pn, v, color, batch_size):
-        pn = torch.from_numpy(pn).float()
+    def loader(p, n, v, color, batch_size):
+        p = torch.from_numpy(p).float()
+        n = torch.from_numpy(n).float()
         v = torch.from_numpy(v).float()
         color = torch.from_numpy(color).float()
 
-        data_set = Data.TensorDataset(pn, v, color)
+        data_set = Data.TensorDataset(p, n, v, color)
 
         loader = Data.DataLoader(
             dataset=data_set, batch_size=batch_size, shuffle=True, num_workers=1,
@@ -160,8 +163,8 @@ def prepare_dataloader(path="dataset/render_text_512.npz", batch_size=100):
         return loader
 
     return (
-        loader(train_inputs_pn, train_inputs_v, train_output_color, batch_size),
-        loader(test_inputs_pn, test_inputs_v, test_output_color, batch_size),
+        loader(train_inputs_p, train_inputs_n, train_inputs_v, train_output_color, batch_size),
+        loader(test_inputs_p, test_inputs_n, test_inputs_v, test_output_color, batch_size),
         (w, h, 3),
     )
 

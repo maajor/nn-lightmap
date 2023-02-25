@@ -12,10 +12,10 @@ from torch.utils.tensorboard import SummaryWriter
 from torch import nn
 
 device = torch.device("cuda:0")
-BATCH_SIZE = 2
+BATCH_SIZE = 1
 TRAIN_EPOCHS = 300
 
-train_loader, test_loader, img_shape = prepare_dataloader(batch_size=BATCH_SIZE)
+train_loader, test_loader, img_shape = prepare_dataloader(batch_size=BATCH_SIZE, path='dataset/render_text_512.npz')
 
 loss_fn = torch.nn.MSELoss(reduction="sum")
 
@@ -23,11 +23,12 @@ loss_fn = torch.nn.MSELoss(reduction="sum")
 def train_epoch(epoch, model, optimizer, writer):
     model.train()
     train_loss = 0
-    for id, (pn, v, color) in enumerate(train_loader):
-        pn = pn.to(device)
+    for id, (p, n, v, color) in enumerate(train_loader):
+        n = n.to(device)
         v = v.to(device)
+        p = p.to(device)
         optimizer.zero_grad()
-        pred_output = model(pn, v)
+        pred_output = model(p, n, v)
         color = color.to(device)
         loss = loss_fn(pred_output, color)
         loss.backward()
@@ -48,10 +49,11 @@ def test_epoch(epoch, model):
     model.eval()
     test_loss = 0
     with torch.no_grad():
-        for id, (pn, v, color) in enumerate(test_loader):
-            pn = pn.to(device)
+        for id, (p, n, v, color) in enumerate(test_loader):
+            n = n.to(device)
             v = v.to(device)
-            pred_output = model(pn, v)
+            p = p.to(device)
+            pred_output = model(p, n, v)
             output = color.to(device)
             test_loss += loss_fn(pred_output, output).item()
 

@@ -11,7 +11,7 @@ function App() {
   return (
     <div id="canvas-container">
       <Canvas
-        camera={{ position: [10, 10, 10], fov: 40 }}>
+        camera={{ position: [10, 10, 10], fov: 48.5 }}>
         <Scene/>
         <OrbitControls target={[0, 0, 0]} />
         <Stats />

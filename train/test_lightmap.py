@@ -7,8 +7,8 @@ import array
 from PIL import Image
 from model import SirenGINet
 
-model = SirenGINet(256, 5, 32, 32, 3)
-model.load_state_dict(torch.load("model/model_siren_256x5x32x32x3_2400.pth"))
+model = SirenGINet(256, 5, 16, 64, 2)
+model.load_state_dict(torch.load("model/model_siren_256x5x16x64x2.pth"))
 
 
 def load_exr(path: str, channels=("R", "G", "B")):
@@ -142,7 +142,7 @@ def get_lightmap_from_view():
     model.eval()
     with torch.no_grad():
         pn = torch.from_numpy(pn).float()
-        lm = model.bake_lightmap(pn)
+        lm = model.bake_lightmap(pn[...,0:3], pn[...,3:6])
         lm = lm.numpy()
     return lm
 
@@ -153,7 +153,7 @@ def get_lightmap_from_uv():
     model.eval()
     with torch.no_grad():
         pn = torch.from_numpy(pn).float()
-        lm = model.bake_lightmap(pn)
+        lm = model.bake_lightmap(pn[...,0:3], pn[...,3:6])
         lm = lm.numpy()
     return lm
 
