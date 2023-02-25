@@ -1,6 +1,5 @@
 dataset/
-dataset_raw/
-dataset_raw_4k/
+dataset_raw*/
 *.pyc
 __pycache__
 

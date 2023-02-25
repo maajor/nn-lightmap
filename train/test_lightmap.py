@@ -8,7 +8,7 @@ from PIL import Image
 from model import SirenGINet
 
 model = SirenGINet(256, 5, 16, 64, 2)
-model.load_state_dict(torch.load("model/model_siren_256x5x16x64x2.pth"))
+model.load_state_dict(torch.load("model/model_siren_256x5x16x64x2_300.pth"))
 
 
 def load_exr(path: str, channels=("R", "G", "B")):
@@ -63,8 +63,8 @@ def bilinear_sample_texture(u0, v0, u1, v1, ru, rv, texture):
 
 
 def get_lightmap_pn():
-    position = load_exr("lightmap/position.exr") * 2.0 - 1.0
-    normal = load_exr("lightmap/normal.exr") * 2.0 - 1.0
+    position = load_exr("lightmap/text/position.exr") * 2.0 - 1.0
+    normal = load_exr("lightmap/text/normal.exr") * 2.0 - 1.0
     position = np.swapaxes(position,0,1)
     normal = np.swapaxes(normal,0,1)
     return np.concatenate((position, normal), -1)
@@ -72,8 +72,8 @@ def get_lightmap_pn():
 
 def get_lightmap_pn_view():
     uv = get_uv()
-    position = load_exr("lightmap/position.exr") * 2.0 - 1.0
-    normal = load_exr("lightmap/normal.exr") * 2.0 - 1.0
+    position = load_exr("lightmap/text/position.exr") * 2.0 - 1.0
+    normal = load_exr("lightmap/text/normal.exr") * 2.0 - 1.0
     position = np.swapaxes(position,0,1)
     normal = np.swapaxes(normal,0,1)
     lmw, lmh, _ = position.shape
@@ -166,13 +166,13 @@ def bake_lightmap():
         # channels in range -1 ~ 1
         channels = channels * 0.5 + 0.5
         img_pil = Image.fromarray((channels * 255.0).astype(np.uint8))
-        img_pil.save(f"lightmap_{i/4}.png")
+        img_pil.save(f"lightmap_{i/4}.webp", quality=80)
 
 
 def load_lightmap():
     channs = []
     for i in range(4):
-        img = Image.open(f'lightmap_{i}.0.png')
+        img = Image.open(f'lightmap_{i}.0.webp')
         channs.append(np.array(img))
     return np.concatenate(channs, -1)
 
@@ -248,11 +248,11 @@ def predict_from_datasource(name: str):
 
 
 if __name__ == "__main__":
-    # bake_lightmap()
+    bake_lightmap()
     # predict_with_gt_pn()
     # predict_with_lightmap_pn()
     # inference_with_lightmap()
     # get_uv()
     # predict_with_gt_pn()
     # debug_lightmap()
-    predict_from_datasource('Camera.028')
+    # predict_from_datasource('Camera.028')

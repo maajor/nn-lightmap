@@ -6,8 +6,8 @@ import { NnLightmapMaterial } from './NnLightmapMaterial';
 extend({ NnLightmapMaterial });
 
 export const Scene = () => {
-    const gltf = useGLTF('/bake_sample.glb')
-    const [t0, t1, t2, t3] = useTexture(['/lightmap_0.0.png', '/lightmap_1.0.png', '/lightmap_2.0.png', '/lightmap_3.0.png'],
+    const gltf = useGLTF('/text/bake_sample.glb')
+    const [t0, t1, t2, t3] = useTexture(['/text/lightmap_0.0.webp', '/text/lightmap_1.0.webp', '/text/lightmap_2.0.webp', '/text/lightmap_3.0.webp'],
         (texs) => {
             for (const tex of (texs as Texture[])) {
                 tex.encoding = LinearEncoding;

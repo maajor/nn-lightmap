@@ -64,12 +64,12 @@ def collect_dataset():
         pn_image = load_exr(
             f"dataset_raw/pn/{file.stem}.exr",
             channels=(
-                "View Layer.Position.X",
-                "View Layer.Position.Y",
-                "View Layer.Position.Z",
-                "View Layer.Normal.X",
-                "View Layer.Normal.Y",
-                "View Layer.Normal.Z",
+                "ViewLayer.Position.X",
+                "ViewLayer.Position.Y",
+                "ViewLayer.Position.Z",
+                "ViewLayer.Normal.X",
+                "ViewLayer.Normal.Y",
+                "ViewLayer.Normal.Z",
             ),
         )
         pn_image = np.swapaxes(pn_image,0,1)
@@ -77,6 +77,7 @@ def collect_dataset():
         pn_image_concat = pn_image.reshape([-1, 6])
         valid_pn_image = pn_image_concat[valid_pixel]
         normal_norm = np.linalg.norm(valid_pn_image[:,3:6], axis=-1)
+        normal_norm = np.maximum(normal_norm, 0.1)
         # normalize normal
         valid_pn_image[:, 3:6] = valid_pn_image[:, 3:6] / normal_norm[:,None]
 
@@ -118,7 +119,7 @@ def collect_dataset():
         i = i + 1
 
     np.savez_compressed(
-        f"dataset/render_text_512",
+        f"dataset/render_monkey_512",
         pn0=pn0,
         v0=v0,
         color0=color0,
@@ -189,15 +190,16 @@ def preview_image():
 
 
 def preview_data():
-    dataset = np.load("dataset/render_text_512.npz", allow_pickle=True)
+    dataset = np.load("dataset/render_monkey_512.npz", allow_pickle=True)
     pn01 = dataset['pn0'] * 0.5 + 0.5
     v01 = dataset['v0'] * 0.5 + 0.5
     color = dataset['color0']
-    print(f"position range {np.min(dataset['pn0'][:,0:3])} ~ {np.max(dataset['pn0'][:,0:3])}")
-    print(f"normal range {np.min(dataset['pn0'][:,3:6])} ~ {np.max(dataset['pn0'][:,3:6])}")
-    print(f"view range {np.min(dataset['v0'])} ~ {np.max(dataset['v0'])}")
+    print(f"position range {np.min(dataset['pn_valid'][:,:,0:3])} ~ {np.max(dataset['pn_valid'][:,:,0:3])}")
+    print(f"normal range {np.min(dataset['pn_valid'][:,:,3:6])} ~ {np.max(dataset['pn_valid'][:,:,3:6])}")
+    print(f"view range {np.min(dataset['v_valid'])} ~ {np.max(dataset['v_valid'])}")
     print(np.max(dataset['color0']))
     print(np.max(dataset['color_valid']))
+    print(dataset['pn_valid'].shape)
     img = Image.fromarray((pn01[:, :, 0:3] * 255.0).astype(np.uint8))
     img.save("preview1.png")
     img = Image.fromarray((pn01[:, :, 3:6] * 255.0).astype(np.uint8))
@@ -210,6 +212,6 @@ def preview_data():
 
 if __name__ == "__main__":
     # collect()
-    # collect_dataset()
+    collect_dataset()
     # preview_image()
     preview_data()

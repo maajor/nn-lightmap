@@ -14,8 +14,9 @@ from torch import nn
 device = torch.device("cuda:0")
 BATCH_SIZE = 1
 TRAIN_EPOCHS = 300
+DATASET_PATH = 'dataset/render_monkey_512.npz'
 
-train_loader, test_loader, img_shape = prepare_dataloader(batch_size=BATCH_SIZE, path='dataset/render_text_512.npz')
+train_loader, test_loader, img_shape = prepare_dataloader(batch_size=BATCH_SIZE, path=DATASET_PATH)
 
 loss_fn = torch.nn.MSELoss(reduction="sum")
 
@@ -95,7 +96,7 @@ def train(model, save_name, writer):
         train_loss.append(train_epoch(epoch, model, optimizer, writer))
         test_loss.append(test_epoch(epoch, model))
         if epoch % 20 == 0:
-            load_and_vis(model, f"{save_name}_{epoch}", epoch, writer)
+            load_and_vis(model, f"{save_name}_{epoch}", epoch, writer, DATASET_PATH)
         if epoch % 5 == 0:
             writer.flush()
         if epoch % 100 == 0:

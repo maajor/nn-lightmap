@@ -125,7 +125,7 @@ class SirenGINet(nn.Module):
         self.rf_layers = nn.ModuleList([])
         self.sh_encoder = SHEncoder(degree=4)
         self.sh_dim = 16 # degree 4 sh
-        self.cs_level = 8
+        self.cs_level = 12
         self.dim_lightmap = dim_hidden
 
         self.lm_layers.append(Siren(dim_in=self.cs_level*6 + self.sh_dim, dim_out=lm_dim, w0=20, is_first=True))
