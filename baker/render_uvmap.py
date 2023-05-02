@@ -35,8 +35,10 @@ bpy.ops.object.bake(type='NORMAL')
 image.update()
 image.save_render(filepath=os.path.join(bpy.path.abspath('//render/'), 'normal.exr'))
 
+''' render oosition pass is not working, you may need to do it manually, like create a geometry node in shader graph, connect its position output to emission, and bake emission pass
 bpy.context.scene.cycles.bake_type = 'POSITION'
 bpy.ops.object.bake(type='POSITION')
 
 image.update()
 image.save_render(filepath=os.path.join(bpy.path.abspath('//render/'), 'position.exr'))
+'''

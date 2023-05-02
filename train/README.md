@@ -13,3 +13,5 @@
 然后执行`python test_lightmap.py` 生成lightmap，会在 `/train`目录下出现lightmap_0.0.webp和lightmap_1.0.webp两张图片
 
 4. 生成shader
+运行
+`python dump_shader.py` 生成一段shader代码，之后拷贝到前端工程中
