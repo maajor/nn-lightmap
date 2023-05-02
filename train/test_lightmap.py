@@ -64,8 +64,8 @@ def bilinear_sample_texture(u0, v0, u1, v1, ru, rv, texture):
 
 
 def get_lightmap_pn():
-    position = load_exr("lightmap/text/position.exr") * 2.0 - 1.0
-    normal = load_exr("lightmap/text/normal.exr") * 2.0 - 1.0
+    position = load_exr("lightmap/position.exr")
+    normal = load_exr("lightmap/normal.exr") * 2.0 - 1.0
     position = np.swapaxes(position,0,1)
     normal = np.swapaxes(normal,0,1)
     print(f'position max {np.max(position)}, min {np.min(position)}')
@@ -74,8 +74,8 @@ def get_lightmap_pn():
 
 def get_lightmap_pn_view():
     uv = get_uv()
-    position = load_exr("lightmap/text/position.exr") * 2.0 - 1.0
-    normal = load_exr("lightmap/text/normal.exr") * 2.0 - 1.0
+    position = load_exr("lightmap/position.exr")
+    normal = load_exr("lightmap/normal.exr") * 2.0 - 1.0
     position = np.swapaxes(position,0,1)
     normal = np.swapaxes(normal,0,1)
     lmw, lmh, _ = position.shape
@@ -223,12 +223,12 @@ def predict_from_datasource(name: str):
     pn_image = load_exr(
         f"dataset_raw/pn/{name}.exr",
         channels=(
-            "View Layer.Position.X",
-            "View Layer.Position.Y",
-            "View Layer.Position.Z",
-            "View Layer.Normal.X",
-            "View Layer.Normal.Y",
-            "View Layer.Normal.Z",
+            "ViewLayer.Position.X",
+            "ViewLayer.Position.Y",
+            "ViewLayer.Position.Z",
+            "ViewLayer.Normal.X",
+            "ViewLayer.Normal.Y",
+            "ViewLayer.Normal.Z",
         ),
     )
     pn_image = np.swapaxes(pn_image,0,1)[0:-1:2, 0:-1:2, :]

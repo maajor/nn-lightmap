@@ -18,3 +18,8 @@
 - /render/render下面是渲染图，
 - /render/pn下面是训练输入数据，exr的通道里面包含position和normal
 - /render/cam_pos.json是相机参数
+
+
+## 3. 准备生成Lightmap所需要的烘焙信息
+将场景内的模型展UV，要求不重叠。可以使用blender自带的 UV -> Unwrap -> Unwrap 功能或自行展UV
+然后在场景中运行render_uvmap.py代码，在/render/目录下生成position.exr和normal.exr两张图片，这两张图片并不会用来训练，但会在之后用来生成lightmap。

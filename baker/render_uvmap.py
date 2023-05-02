@@ -1,7 +1,9 @@
 import bpy
 import os
 
-bpy.data.images.new(name='baker5', width=512, height=512, alpha=False, float_buffer=True, )
+LIGHTMAP_RESOLUTION = 512
+
+bpy.data.images.new(name='baker5', width=LIGHTMAP_RESOLUTION, height=LIGHTMAP_RESOLUTION, alpha=False, float_buffer=True, )
 image = bpy.data.images['baker5']
 image.file_format = 'OPEN_EXR'
 
@@ -21,6 +23,8 @@ for ob in scene.objects:
             #bpy.ops.node.add_node(type='ShaderNodeTexImage')
         ob.select_set(True)
 
+bpy.context.scene.render.image_settings.color_mode = 'RGB'
+bpy.context.scene.render.image_settings.file_format = 'OPEN_EXR'
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True, properties=True)
 bpy.context.scene.cycles.bake_type = 'NORMAL'
 bpy.context.scene.render.bake.normal_space = 'OBJECT'

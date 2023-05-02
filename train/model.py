@@ -297,4 +297,7 @@ class SirenGINet(nn.Module):
 
         print(out)
 
+        with open('shader.txt', 'w') as f:
+            f.write(out)
+
         return out
