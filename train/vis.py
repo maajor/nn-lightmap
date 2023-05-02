@@ -7,7 +7,7 @@ from PIL import Image
 
 
 def load_and_vis(
-    model, name, epoch=None, writer=None, dataset_path="dataset/render_text_512.npz"
+    model, name, epoch=None, writer=None, dataset_path="dataset/render_monkey_128.npz"
 ):
     device = torch.device("cuda:0")
 
@@ -37,8 +37,8 @@ def load_and_vis(
 
 
 if __name__ == "__main__":
-    model = SirenGINet(256, 5, 32, 64, 3)
-    model.load_state_dict(torch.load("model/model_siren_256x5x32x64x3_4500.pth"))
+    model = SirenGINet(256, 5, 8, 32, 2)
+    model.load_state_dict(torch.load("model/model_siren_256x5x32x64x38x32x2.pth"))
 
     device = torch.device("cuda:0")
     model = model.to(device)

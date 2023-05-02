@@ -128,6 +128,7 @@ class SirenGINet(nn.Module):
         self.cs_level = 8
         self.dim_lightmap = dim_hidden
 
+        # lightmap layers, take in position and normal, output lightmap features
         self.lm_layers.append(Siren(dim_in=self.cs_level*6 + self.sh_dim, dim_out=lm_dim, w0=20, is_first=True))
 
         for _ in range(lm_layer):
@@ -135,7 +136,7 @@ class SirenGINet(nn.Module):
 
         self.lm_layers.append(Siren(dim_in=lm_dim, dim_out=dim_hidden))
         
-        # rf layers
+        # refine layers, take in lightmap layer's output and sh encoded view direction, output rgb
         self.rf_layers.append(Siren(dim_in=dim_hidden + self.sh_dim, dim_out=rf_dim))
         for _ in range(rf_layer):
             self.rf_layers.append(Siren(dim_in=rf_dim, dim_out=rf_dim))
@@ -145,7 +146,7 @@ class SirenGINet(nn.Module):
     def forward(self, p, n, v):
         '''
         input: 
-          uv: B x W x H x 2, 
+          p: B x W x H x 3, 
           n: B x W x H x 3,
           v: B x W x H x 3
         '''
@@ -175,6 +176,9 @@ class SirenGINet(nn.Module):
         return x
 
     def bake_lightmap(self, p, n):
+        '''
+        Take in position and normal, output lightmap features
+        '''
         n_in_sh = self.sh_encoder(n)
 
         cs_enc = [n_in_sh]
@@ -193,6 +197,9 @@ class SirenGINet(nn.Module):
         return x
 
     def inference_with_lightmap(self, lightmap, v):
+        '''
+        Take in lightmap features and view direction, predict color
+        '''
         v_in_sh = self.sh_encoder(v)
         x = torch.cat((lightmap, v_in_sh), -1)
 

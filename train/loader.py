@@ -11,8 +11,12 @@ from PIL import Image
 from pathlib import Path
 import json
 
+DATASET_NAME = "dataset/render_monkey_128"
 
 def get_exr_data(path: str):
+    '''
+    Get the data from an EXR image.
+    '''
     file = OpenEXR.InputFile(path)
     dw = file.header()["dataWindow"]
     sz = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
@@ -20,6 +24,8 @@ def get_exr_data(path: str):
 
 
 def load_exr(path: str, channels=("R", "G", "B")):
+    '''Load an EXR image from path as a numpy array. 
+    '''
     file = OpenEXR.InputFile(path)
     dw = file.header()["dataWindow"]
     # print(file.header())
@@ -31,6 +37,9 @@ def load_exr(path: str, channels=("R", "G", "B")):
 
 
 def collect():
+    '''
+    Collect the dataset from the render folder. Just for debug
+    '''
     path = Path("dataset_raw/render")
     files = path.glob("**/*.exr")
     for file in tqdm(path.glob("**/*.png")):
@@ -38,8 +47,14 @@ def collect():
 
 
 def collect_dataset():
+    '''
+    Collect the dataset from the render folder
+    '''
+    # position and normal information, only valid pixels
     pn_valid = np.zeros((0, 6), dtype=np.float16)
+    # view direction information, only valid pixels
     v_valid = np.zeros((0, 3), dtype=np.float16)
+    # color information, only valid pixels
     color_valid = np.zeros((0, 3), dtype=np.float16)
 
     path = Path("dataset_raw/render")
@@ -54,13 +69,14 @@ def collect_dataset():
         render_image = Image.open(f'dataset_raw/render/{file.stem}.png')
         render_image = np.array(render_image) / 255.0
         render_image_concat = render_image.reshape([-1, 4])
+        # if render channel's alpha is larger than 0, it's a valid pixel
         valid_pixel = render_image_concat[:,3] >= (1 - 1e-6)
 
         if i == 0:
             color0 = render_image[:, :, 0:3].astype(np.float16)
         color_valid = np.concatenate((color_valid, render_image_concat[:, 0:3][valid_pixel]), axis=0)
-        # print(f"max color value {np.max(color_valid)}")
 
+        # pn_image is resolution x resolution x 6 shape
         pn_image = load_exr(
             f"dataset_raw/pn/{file.stem}.exr",
             channels=(
@@ -75,42 +91,30 @@ def collect_dataset():
         pn_image = np.swapaxes(pn_image,0,1)
 
         pn_image_concat = pn_image.reshape([-1, 6])
+        # valid pixels are the same as render image
         valid_pn_image = pn_image_concat[valid_pixel]
         normal_norm = np.linalg.norm(valid_pn_image[:,3:6], axis=-1)
         normal_norm = np.maximum(normal_norm, 0.1)
         # normalize normal
         valid_pn_image[:, 3:6] = valid_pn_image[:, 3:6] / normal_norm[:,None]
 
-        # print(f"normal range {np.min(valid_pn_image[:,3:6])} ~ {np.max(valid_pn_image[:,3:6])}")
-        # print(f"position range {np.min(valid_pn_image[:,0:3])} ~ {np.max(valid_pn_image[:,0:3])}")
-
         if i == 0:
+            # first image for test
             pn0 = pn_image.astype(np.float16)
         pn_valid = np.concatenate(
             (pn_valid, valid_pn_image), axis=0
         )
 
-        # view_img = load_exr(str(f"dataset_raw/view/{file.stem}.exr"), channels=("R", "G", "B"))
-        # view_img = np.swapaxes(view_img,0,1) * 2.0 - 1.0
         if i == 0:
+            # first image for test
             v0 = pn_image[:, :, 0:3] - camera_position[np.newaxis, np.newaxis, :]
             v0 = v0 / np.linalg.norm(v0, axis=-1)[:, :, np.newaxis]
             v0 = v0.astype(np.float16)
 
-        # view_img_concat = view_img.reshape([-1, 3])
-        # view_valid_image = view_img_concat[valid_pixel]
+        # view direction is calculated from "position - camera position"
+        # and then we normalize it
         view_should_be = valid_pn_image[:, 0:3] - camera_position[np.newaxis, :]
         view_should_be = view_should_be / np.linalg.norm(view_should_be, axis=-1)[:,None]
-        # diff = view_should_be - view_valid_image
-        # print(valid_pn_image[0,:])
-        # print(view_should_be[0,:])
-        # print(view_valid_image[0,:])
-        # print(np.sum(diff))
-
-        # print(view_should_be.shape)
-        # view_norm = np.linalg.norm(view_valid_image, axis=-1)
-        # print(f"norm sum {np.sum(view_norm)}, {view_valid_image.shape[0]}")
-        # print(f"view range {np.min(view_valid_image)} ~ {np.max(view_valid_image)}")
 
         v_valid = np.concatenate(
             (v_valid, view_should_be), axis=0
@@ -119,7 +123,7 @@ def collect_dataset():
         i = i + 1
 
     np.savez_compressed(
-        f"dataset/render_monkey_512",
+        DATASET_NAME,
         pn0=pn0,
         v0=v0,
         color0=color0,
@@ -129,14 +133,15 @@ def collect_dataset():
     )
 
 
-def prepare_dataloader(path="dataset/render_text_512.npz", batch_size=100):
+def prepare_dataloader(path, batch_size=100):
     dataset = np.load(path, allow_pickle=True)
     pn = dataset["pn_valid"]
     v = dataset["v_valid"]
     color = dataset["color_valid"]
 
     shape_l = pn.shape[0]
-    w, h = (512, 512)
+    # reshape n x c input data to w x h x c data,
+    w, h = (128, 128)
     reshape_nums = int(math.floor(shape_l / (w * h)))
     reshape_all_size = reshape_nums * w * h
 
@@ -190,12 +195,13 @@ def preview_image():
 
 
 def preview_data():
-    dataset = np.load("dataset/render_monkey_512.npz", allow_pickle=True)
+    '''
+    preview npz dataset's first image for test
+    '''
+    dataset = np.load(f"{DATASET_NAME}.npz", allow_pickle=True)
     pn01 = dataset['pn0'] * 0.5 + 0.5
     v01 = dataset['v0'] * 0.5 + 0.5
     color = dataset['color0']
-    print(f"position range {np.min(dataset['pn_valid'][:,:,0:3])} ~ {np.max(dataset['pn_valid'][:,:,0:3])}")
-    print(f"normal range {np.min(dataset['pn_valid'][:,:,3:6])} ~ {np.max(dataset['pn_valid'][:,:,3:6])}")
     print(f"view range {np.min(dataset['v_valid'])} ~ {np.max(dataset['v_valid'])}")
     print(np.max(dataset['color0']))
     print(np.max(dataset['color_valid']))

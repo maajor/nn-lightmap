@@ -8,7 +8,8 @@ from PIL import Image
 from model import SirenGINet
 
 model = SirenGINet(256, 5, 8, 32, 2)
-model.load_state_dict(torch.load("model/model_siren_256x5x8x32x2_2200.pth"))
+model.load_state_dict(torch.load("model/model_siren_256x5x8x32x2.pth"))
+DATASET_NAME = "dataset/render_monkey_128.npz"
 
 
 def load_exr(path: str, channels=("R", "G", "B")):
@@ -33,7 +34,7 @@ def get_uv():
 
 
 def get_groundtruth_pn():
-    dataset = np.load("dataset/render_text_4k.npz", allow_pickle=True)
+    dataset = np.load(DATASET_NAME, allow_pickle=True)
     pn = dataset['pn0'][0:-1:4, 0:-1:4, :]
     normalized = pn * 0.5 + 0.5
     img_pil = Image.fromarray((normalized[:, :, 0:3] * 255.0).astype(np.uint8))
@@ -44,7 +45,7 @@ def get_groundtruth_pn():
 
 
 def get_groundtruth_v():
-    dataset = np.load("dataset/render_text_4k.npz", allow_pickle=True)
+    dataset = np.load(DATASET_NAME, allow_pickle=True)
     v = dataset["v0"][0:-1:4, 0:-1:4, :]
     print(np.max(v))
     print(np.min(v))

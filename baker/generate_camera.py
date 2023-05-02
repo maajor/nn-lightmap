@@ -1,3 +1,6 @@
+'''
+This script generates a camera for each vertex of a sphere.
+'''
 import bpy
 import mathutils
 

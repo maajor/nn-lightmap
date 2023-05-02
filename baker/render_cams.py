@@ -3,6 +3,8 @@ import mathutils
 import bpy
 import os
 
+RESOLUTION=128
+
 def setup_resolution(resolution):
     for scene in bpy.data.scenes:
         scene.render.resolution_x = resolution
@@ -61,7 +63,13 @@ def dump_camera_position(out_dir):
         json.dump(pos, f)
 
 
-setup_resolution(512)
+# only cyclys has position pass
+bpy.context.scene.render.engine = 'CYCLES'
+
+# render transparent background for pixel dropout
+bpy.context.scene.render.film_transparent = True
+
+setup_resolution(RESOLUTION)
 setup_for_basecolor()
 res = render_all_cam_views(bpy.path.abspath('//render/render'))
 setup_for_pn()
